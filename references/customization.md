@@ -11,8 +11,8 @@ array:
 
 ```js
 tracks: [
-  { id: "work",    label: "工作", color: "#58a6ff", emoji: "🟦" },
-  { id: "learn",   label: "学习", color: "#3fb950", emoji: "🟩" },
+  { id: "work",    label: "Work",  color: "#58a6ff", emoji: "🟦" },
+  { id: "learn",   label: "Learn", color: "#3fb950", emoji: "🟩" },
   // add / remove / rename freely
 ],
 ```
@@ -34,7 +34,7 @@ pending asks). The section is hidden until the array is non-empty. Rename its he
 
 ## Optional: a custom metric module (e.g. health/finance tracking)
 
-The original board had a bespoke **健身追踪** section (weight goal, pace vs expected, training streak).
+The original board had a bespoke **fitness-tracking** section (weight goal, pace vs expected, training streak).
 That's an example of a custom module beyond the generic schema. To add one:
 
 1. Add a data object to `DATA`, e.g. `health: { goal, baselineKg, currentKg, weekTrained, ... }`.
@@ -47,15 +47,15 @@ Keep custom modules small and single-purpose; if one grows, give it its own sub-
 
 ## Multi-board (`DATA.nav`)
 
-To run several linked boards (e.g. a main board + 工作板 + 生活板), create one HTML file per board
+To run several linked boards (e.g. a main board + Work + Life boards), create one HTML file per board
 (all sharing the same `dashboard.css` + `dashboard-utils.js` in the folder), and give each the same
 `nav` array:
 
 ```js
 nav: [
-  { label: "📋 主看板", href: "看板.html" },
-  { label: "🟦 工作板", href: "工作板.html" },
-  { label: "🌸 生活板", href: "生活板.html" },
+  { label: "📋 Main board", href: "board.html" },
+  { label: "🟦 Work board", href: "work.html" },
+  { label: "🌸 Life board", href: "life.html" },
 ],
 ```
 
@@ -73,14 +73,14 @@ change palettes, edit those CSS variable blocks.
 
 ## Optional: sub-pages
 
-The original linked detail pages (求职进展 / mentor / 健身 / 长线时间轴) via a `.subpage-nav` chip row,
+The original linked detail pages (job-search / mentor / fitness / timeline) via a `.subpage-nav` chip row,
 each its own HTML file `<link>`-ing the same `dashboard.css` and `<script src>`-ing the same
 `dashboard-utils.js`. To add one: create `<name>.html`, reuse the shared base, add a nav chip in the
 header. The shared CSS already ships `.back`, `.stats`/`.stat`, and `section > h2` styles for these.
 
 ## Optional: markdown mirror
 
-`assets/kanban-template.md` is a terminal-readable twin. If the user wants both, keep them同源: every
+`assets/kanban-template.md` is a terminal-readable twin. If the user wants both, keep them in sync: every
 Refresh updates both. The `.md` is hand-maintained (no render script), so it's a summary, not a
 generated artifact — don't over-invest in keeping every card byte-identical, just the structure.
 

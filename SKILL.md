@@ -17,18 +17,18 @@ description: >-
 # Life Kanban
 
 A reusable tool for a **single-file personal kanban board**: one HTML file whose top `DATA`
-block is the single source of truth. 3 columns (🔥 NOW·今天 / 📅 本周 / ⏭ NEXT&LATER),
+block is the single source of truth. 3 columns (🔥 NOW·Today / 📅 This week / ⏭ NEXT&LATER),
 data-driven color tracks, auto progress bar, a non-linear (log-scale) long-range timeline,
 and NOT-NOW + redlines rails. Optional markdown mirror for terminal viewing.
 
 Built-in viewing aids (no data-model impact): instant **search** box, **keyboard shortcuts**
 (`/` search · `1-9` track filter · `a` all · `d` show/hide done · `p` print · `Esc` clear),
-a **复制今天** button (NOW column → clipboard as plain text), and a **print stylesheet**
+a **Copy today** button (NOW column → clipboard as plain text), and a **print stylesheet**
 (`Ctrl/⌘+P` → clean light-theme PDF that expands all cards and ignores active filters).
 
 Daily-use interactivity (a **localStorage overlay**, not file edits): tick a card's ☑ or **drag**
 it between/within columns in the browser; changes persist locally and a **sync banner** offers
-**📤 复制最新 DATA** (paste back to commit) + **↺ 清空本地改动**. Also a **🌗 light/dark** toggle
+**📤 Copy latest DATA** (paste back to commit) + **↺ Reset local changes**. Also a **🌗 light/dark** toggle
 (persisted) and **multi-board nav** via `DATA.nav`. The `DATA` block stays the structural source of
 truth; the overlay is ephemeral. See `references/data-schema.md` → "Browser overlay vs the file".
 
@@ -37,10 +37,10 @@ object at the top of the HTML. The render script below it is generic and never n
 This keeps every operation a small, safe, diff-able JS-object edit.
 
 **Design principles** (carried from the proven original):
-- **单页可读** — the whole board scrolls in one screen; if it overflows, cut/archive, don't pile.
-- **现实校准** — when refreshing, ground the board in the user's *actual* files/状态, not memory.
-- **deadline 优先** — anything with a hard deadline inside 7 days gets pushed to the NOW column.
-- **敢标 NOT NOW** — explicitly listing what you're *not* doing prevents distraction.
+- **Fits one screen** — the whole board scrolls in one view; if it overflows, cut/archive, don't pile.
+- **Reality-calibrated** — when refreshing, ground the board in the user's *actual* files/state, not memory.
+- **Deadlines first** — anything with a hard deadline inside 7 days gets pushed to the NOW column.
+- **Dare to mark NOT NOW** — explicitly listing what you're *not* doing prevents distraction.
 
 ---
 
@@ -55,10 +55,10 @@ and Linux identically). Run these patterns and read the results into the decisio
 
 | Probe | Glob pattern | Tells you |
 |---|---|---|
-| Existing board (named) | `**/看板.html` | The canonical board file. |
+| Existing board (named) | `**/{board,看板}.html` | The canonical board file. |
 | Existing board (any) | `**/*{kanban,看板,board,dashboard}*.html` | Other candidate boards. |
 | Assets already present | `<targetdir>/dashboard-utils.js` | Whether a board's shared assets are already there (don't re-copy/clobber). |
-| Markdown mirror | `<targetdir>/看板.md` (or `*.md` twin) | Whether to keep a `.md` in sync. |
+| Markdown mirror | `<targetdir>/board.md` (or `看板.md` / `*.md` twin) | Whether to keep a `.md` in sync. |
 
 **Decision tree:**
 1. User named an explicit path/file → that is the target board.
@@ -73,10 +73,10 @@ and Linux identically). Run these patterns and read the results into the decisio
 
 | User says… | Mode | Go to |
 |---|---|---|
-| "做个看板" / "新建" / no board exists | **Create** | Step 2 |
-| "加一项" / "改成" / "打勾" / "完成了" / "挪到今天" / "删掉" | **Edit** | Step 3 |
-| "复盘" / "刷新看板" / "周日整理" / "进新的一周" | **Refresh** | Step 4 |
-| "汇总" / "分析" / "现在啥情况" / "哪些落后了" | **Analyze** | Step 5 |
+| "make a board" / "new board" / 做个看板 / no board exists | **Create** | Step 2 |
+| "add a task" / "mark done" / "move to today" / "delete" / 加一项 / 打勾 / 挪到今天 | **Edit** | Step 3 |
+| "weekly review" / "refresh the board" / "start a new week" / 复盘 / 刷新看板 | **Refresh** | Step 4 |
+| "summarize" / "where am I" / "what's slipping" / 汇总 / 现在啥情况 | **Analyze** | Step 5 |
 
 If ambiguous, default to **Edit** for an existing board, **Create** if none exists. State the
 chosen mode in one line before proceeding.
@@ -97,8 +97,8 @@ asking. The skill should always produce a working board.
 | Parameter | Default if not provided | Rationale |
 |---|---|---|
 | Target directory | current working dir; if it looks like a repo root, a `Dashboard/` subfolder | Keeps the board near where the user works; mirrors the proven layout. |
-| HTML filename | `看板.html` | Matches the original; what the user's muscle memory expects. |
-| Board title (`__TITLE__`) | `"我的看板"` | Renders something sensible; trivial to rename later. |
+| HTML filename | `board.html` | Simple, language-neutral; rename freely (e.g. `看板.html`). |
+| Board title (`__TITLE__`) | `"My Board"` | Renders something sensible; trivial to rename later. |
 | `tracks` | work🟦 / learn🟩 / project🟧 / life🌸 / system⬛ (template's 5) | Covers most life+work splits; easy to add/remove per `customization.md`. |
 | `period` semantics | weekly (`W<n>`) | The original cadence; switch to sprint/month only if the user says so. |
 | `meta.today` | the real current date | Avoids the stale red banner on first render. |
@@ -113,27 +113,48 @@ asking. The skill should always produce a working board.
 Scaffold a fresh board from the bundled template assets. **Never write the HTML/CSS/JS by hand** —
 copy the assets, then edit only the `DATA` block.
 
+### Step 2a: Intake — elicit needs first (only when creating from scratch)
+
+A new board is only useful if it reflects the user's real life, not placeholders. Before scaffolding,
+run a **short intake** with the `AskUserQuestion` tool (one batch, ~4 questions). This is the one place
+the skill *does* ask — but it never blocks: **every answer is optional and falls back to the Defaults
+table.** Skip the intake entirely if the user already described their board in the request (mine their
+message for the same fields instead).
+
+Ask (adapt wording; offer skip/Other on each):
+
+| # | Question | Fills |
+|---|---|---|
+| 1 | Which areas does this board cover? (work / study / health / side-projects / family / …) | `tracks[]` |
+| 2 | What cadence — weekly, sprint, or monthly? | `meta.period*` |
+| 3 | What's the single most important thing this period? | `meta.focus` + first ⭐ NOW card |
+| 4 | Anything you're explicitly **not** doing right now? / any hard deadline? | `notNow[]` / `timeline[]` |
+| 5 (only if relevant) | One board, or separate boards (e.g. Work + Life)? | single vs `nav[]` multi-board |
+
+Then confirm the captured intake in one line and proceed. For anything unanswered, use Defaults and
+**say so** — do not re-ask.
+
+### Step 2b: Scaffold
+
 1. **Copy the asset files** into the target directory (see the Defaults table for dir/filename). Per
    the Step 1 asset-presence probe, **skip any asset that already exists** — never clobber a working one:
    - `assets/dashboard.css` → `dashboard.css`
    - `assets/dashboard-utils.js` → `dashboard-utils.js`
-   - `assets/kanban-template.html` → `看板.html` (or the user's preferred filename)
-   - Optional: `assets/kanban-template.md` → `看板.md` (terminal mirror; default skip)
-2. **Replace `__TITLE__`** in the HTML (and `.md`) with the user's board name (default `"我的看板"`).
+   - `assets/kanban-template.html` → `board.html` (or the user's preferred filename)
+   - Optional: `assets/kanban-template.md` → `board.md` (terminal mirror; default skip)
+2. **Replace `__TITLE__`** in the HTML (and `.md`) with the board name (default `"My Board"`).
 3. **Set `DATA.meta`** — `today` (real today), `period` / `periodRange` / `periodDay` /
-   `periodDayName`, and a one-line `focus` (the single most important thing this period).
-4. **Define `DATA.tracks`** — ask or infer the user's life/work categories. Default to the 5 in the
-   template (work / learn / project / life / system). Each track = one color + one legend chip.
-   See `references/customization.md` for adding/removing tracks and picking colors.
+   `periodDayName`, and a one-line `focus` (from intake Q3).
+4. **Define `DATA.tracks`** from intake Q1 (or default to work / learn / project / life / system).
+   Each track = one color + one legend chip. See `references/customization.md` for colors.
 5. **Seed the columns** — turn whatever the user described into `now[]`, `week[]`, `next[]` cards.
    Use the schema in `references/data-schema.md`. If they gave nothing, keep the example cards as
    placeholders and tell them so.
-6. **Fill `notNow[]` and `redlines[]`** if the user mentioned things to explicitly avoid; otherwise
-   leave one placeholder each.
-7. **Multi-board (optional)** — if the user wants separate boards (e.g. 工作板 + 生活板), copy the
-   template once per board (sharing the same `dashboard.css`/`dashboard-utils.js`) and give each the
-   same `DATA.nav` array linking the others. Use a **distinct `meta.title` per board** (overlay state
-   is keyed by title). See `references/customization.md` → "Multi-board".
+6. **Fill `notNow[]` and `redlines[]`** from intake Q4; otherwise leave one placeholder each.
+7. **Multi-board (optional, intake Q5)** — for separate boards (e.g. Work + Life), copy the template
+   once per board (sharing the same `dashboard.css`/`dashboard-utils.js`) and give each the same
+   `DATA.nav` array linking the others. Use a **distinct `meta.title` per board** (overlay state is
+   keyed by title). See `references/customization.md` → "Multi-board".
 
 **Exit gate:** the file opens in a browser with no console errors and renders the user's real focus
 (not just placeholders). Verify per Step 6 before declaring done.
@@ -160,7 +181,7 @@ Rules:
 - Match the existing track ids exactly — a typo'd `track` just renders uncolored.
 - **Browser overlay first:** the user may have ticked/dragged cards in-browser (a `localStorage`
   overlay, shown by the sync banner). Those are *not* in the file yet. Before hand-editing the `DATA`
-  block, ask whether to bake in pending overlay changes (user hits **📤 复制最新 DATA** → you paste it
+  block, ask whether to bake in pending overlay changes (user hits **📤 Copy latest DATA** → you paste it
   in) so your file edits and their browser state don't fight. See `references/data-schema.md`.
 - After editing, re-verify per Step 6 (the page must still render).
 
@@ -169,13 +190,13 @@ for when each kind of edit happens in the daily/weekly loop.
 
 ---
 
-## Step 4: Refresh / Weekly Review (整页刷新)
+## Step 4: Refresh / Weekly Review (full-page refresh)
 
-The periodic "复盘" that resets the board for a new cycle. Follow `references/maintenance-rhythm.md`.
+The periodic review that resets the board for a new cycle. Follow `references/maintenance-rhythm.md`.
 
 1. **Ground in reality first** — read the user's actual plan/status files (or ask) before rewriting.
    Don't refresh from memory. Confirm what *actually* got done vs slipped. **Also bake in any browser
-   overlay** (if the sync banner shows pending ticks/drags, have the user hit 📤 复制最新 DATA and start
+   overlay** (if the sync banner shows pending ticks/drags, have the user hit 📤 Copy latest DATA and start
    the refresh from *that*), then the overlay can be cleared (↺) so the file is canonical again.
 2. **Update `meta`** — new `today`, `period`, `periodRange`, `periodDay`, `periodDayName`, and a
    rewritten one-line `focus`.
@@ -185,7 +206,7 @@ The periodic "复盘" that resets the board for a new cycle. Follow `references/
    - NEXT/LATER → promote what's now in-scope into WEEK; let the rest roll forward.
 4. **Timeline** — advance the `today` marker; promote any deadline now inside 7 days into a card.
 5. **Refresh `notNow[]`** for the new cycle and re-check `redlines[]` still apply.
-6. **Mirror to `.md`** if one exists, so the markdown stays同源.
+6. **Mirror to `.md`** if one exists, so the markdown stays in sync.
 
 **Exit gate:** board reflects the new period, `today` matches reality, slipped items are surfaced
 (not hidden), and it still renders one-screen. Verify per Step 6.
@@ -225,7 +246,7 @@ deadline?") but don't edit unprompted.
    scorecard: per-track counts, NOW load, slips, nearest deadline).
 3. **State of the board now** — NOW column at a glance + current `focus`.
 4. **Open it** — clickable path to the `.html`, and the maintenance reminder relevant to the mode
-   (e.g. "周日复盘时再 Refresh 一次").
+   (e.g. "Refresh again at the weekly review").
 
 ---
 
@@ -235,7 +256,7 @@ deadline?") but don't edit unprompted.
   `now/week/next` card schema, `timeline`, `tracking`, `notNow`, `redlines`, with every field's type
   and default.
 - `references/maintenance-rhythm.md` — the daily / weekly / deadline update conventions and the
-  "整页刷新" review checklist.
+  full-page-refresh review checklist.
 - `references/customization.md` — adding/removing tracks, choosing colors, optional modules
   (tracking table, sub-pages, custom sections like health tracking), and how the dynamic track CSS
   injection works.

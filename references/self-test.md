@@ -25,7 +25,7 @@ Run this in the page console / `preview_eval`. **All checks must pass:**
 ```js
 (function(){
   const r = {
-    legendChips:   document.querySelectorAll('#legend .legend-chip').length,   // expect tracks.length + 2 (全部 + 👁️)
+    legendChips:   document.querySelectorAll('#legend .legend-chip').length,   // expect tracks.length + 2 (All + 👁️)
     trackStyle:    !!document.getElementById('track-styles'),                  // dynamic track CSS injected
     cardBorder:    getComputedStyle(document.querySelector('#now-list .card')).borderLeftColor, // non-default = track color applied
     nowCards:      document.querySelectorAll('#now-list .card').length   > 0,
@@ -46,7 +46,7 @@ Run this in the page console / `preview_eval`. **All checks must pass:**
   // toolbar / search / shortcuts
   r.toolbar = !!document.getElementById('search') && !!document.getElementById('copy-today');
   const s = document.getElementById('search');
-  s.value = '健身'; s.dispatchEvent(new Event('input'));
+  s.value = 'secondary'; s.dispatchEvent(new Event('input'));
   r.searchHidesSome = document.querySelectorAll('.card.search-hidden').length > 0;
   document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
   r.escClears = s.value === '' && document.querySelectorAll('.card.search-hidden').length === 0;
@@ -72,7 +72,7 @@ Run this in the page console / `preview_eval`. **All checks must pass:**
 })()
 ```
 
-(For the search probe to hide something, use a needle present in the demo data, e.g. `健身`. With the
+(For the search probe to hide something, use a needle present in the data, e.g. `secondary`. With the
 raw template's placeholder cards, swap in a word that appears there.)
 
 **Expected:** `trackStyle` true · `cardBorder` is a real color (not `rgb(0,0,0)`/transparent) · all

@@ -7,14 +7,14 @@ glance** plus a **periodic full refresh**. These conventions come from the prove
 
 | Frequency | Action |
 |---|---|
-| **每天早起 30s** | Look at the NOW column → start the first thing immediately. Don't re-plan, just act. |
-| **每天晚收 30s** | Tick / restatus NOW cards (`done:true`). Don't backfill yesterday's misses — just move them to today. |
-| **每周期末复盘** (Sun, or sprint/month end) | Full-page refresh — see the checklist below. |
-| **deadline 进 7 天窗口** | Promote it from `timeline[]` into a NOW/WEEK card. |
-| **新启动一件待回应的事** | Add a row to `tracking[]`. |
-| **某事到终态** | Mark `tracking[].closed = true` (or remove the card). |
+| **Each morning, 30s** | Look at the NOW column → start the first thing immediately. Don't re-plan, just act. |
+| **Each evening, 30s** | Tick / restatus NOW cards (`done:true`). Don't backfill yesterday's misses — just move them to today. |
+| **End of each period** (Sun, or sprint/month end) | Full-page refresh — see the checklist below. |
+| **Deadline enters the 7-day window** | Promote it from `timeline[]` into a NOW/WEEK card. |
+| **Launched something awaiting a reply** | Add a row to `tracking[]`. |
+| **Something reaches a terminal state** | Mark `tracking[].closed = true` (or remove the card). |
 
-## The 整页刷新 (full refresh) checklist — Refresh mode
+## The full-refresh checklist — Refresh mode
 
 Do this at the end of each period (the original does it every Sunday after writing the next week's plan):
 
@@ -29,15 +29,15 @@ Do this at the end of each period (the original does it every Sunday after writi
 4. **Advance the timeline** — move the `today` marker's date; promote any deadline now within 7 days.
 5. **Rewrite `notNow[]`** for the new period — explicitly cut what you're choosing not to do, so you
    stop re-litigating it. Re-check `redlines[]` still hold.
-6. **Mirror to `.md`** if a markdown twin exists, so both stay同源.
+6. **Mirror to `.md`** if a markdown twin exists, so both stay in sync.
 
 ## Principles that keep it from rotting
 
-- **单页可读** — if the board no longer fits one screen, that's a signal to cut, not to scroll. Archive
+- **Fits one screen** — if the board no longer fits one screen, that's a signal to cut, not to scroll. Archive
   done items, collapse finished tracks, move detail into `meta`.
-- **现实校准** — refresh from actual files/状态, never from what you *think* happened.
-- **deadline 优先** — hard deadlines inside the window live at the top (NOW).
-- **敢标 NOT NOW** — the list of things you're *not* doing is as load-bearing as the to-do list.
+- **Reality-calibrated** — refresh from actual files/state, never from what you *think* happened.
+- **Deadlines first** — hard deadlines inside the window live at the top (NOW).
+- **Dare to mark NOT NOW** — the list of things you're *not* doing is as load-bearing as the to-do list.
 - **slip honestly** — a carried-over task keeps its history ("Wed slip → Thu"); don't silently reset it.
 
 ## Staleness signal

@@ -1,6 +1,6 @@
 # DATA Block Schema
 
-The entire board is one JS object, `DATA`, at the top of `看板.html`. Editing the board = editing
+The entire board is one JS object, `DATA`, at the top of `board.html`. Editing the board = editing
 this object. The render script below it is generic. Everything is HTML-escaped at render via `esc()`,
 so plain text in any string field is safe.
 
@@ -37,13 +37,13 @@ const DATA = {
 
 ## `nav` (array, optional) — multi-board sub-page links
 
-Renders a chip row under the header linking sibling boards (e.g. a main board + 工作板 + 生活板).
+Renders a chip row under the header linking sibling boards (e.g. a main board + Work + Life boards).
 Hidden when empty. Each board is its own HTML file sharing `dashboard.css` + `dashboard-utils.js`.
 
 | Field | Type | Notes |
 |---|---|---|
-| `label` | string | Chip text, e.g. `"🟦 工作板"`. |
-| `href` | string | Filename of the sibling board, e.g. `"工作板.html"`. The chip auto-marks `.current` when the filename matches the open page. |
+| `label` | string | Chip text, e.g. `"🟦 Work board"`. |
+| `href` | string | Filename of the sibling board, e.g. `"work.html"`. The chip auto-marks `.current` when the filename matches the open page. |
 
 ## `tracks` (array) — color categories (data-driven)
 
@@ -76,16 +76,16 @@ One task = one card. The only difference between the three columns is the **time
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `time` | string | now[] only | Time slot, e.g. `"上午 ⭐"`, `"晚 21-22"`, `"✅ 已完成"`. |
+| `time` | string | now[] only | Time slot, e.g. `"AM ⭐"`, `"21-22"`, `"✅ done"`. |
 | `day` | string | week[] only | Plan day, e.g. `"Mon"`, `"Wed ✅"`. |
-| `when` | string | next[] only | Window, e.g. `"下周期"`, `"W23+"`, `"🦘 Filler"`. |
+| `when` | string | next[] only | Window, e.g. `"Next period"`, `"W23+"`, `"🦘 Filler"`. |
 | `title` | string | ✅ | Short, scannable. The headline of the card. |
 | `track` | string | ✅ | Must match a `tracks[].id`. Drives color. |
 | `meta` | string | — | Expandable detail (click to expand on non-star cards). `\n` allowed. |
 | `tag` | `"P0"`\|`"P1"`\|`"P2"` | — | Priority chip (red/yellow/blue). |
 | `star` | boolean | — | ⭐ highlight; star cards show `meta` always + can't collapse. |
 | `done` | boolean | — | Strike-through + auto-hidden under 👁️ toggle. Counts toward progress. |
-| `action` | string | — | Verb for the badge when not a project, e.g. `做`/`练`/`投`/`复盘`. Badge = `label·action`. |
+| `action` | string | — | Verb for the badge when not a project, e.g. `do`/`learn`/`write`/`review`. Badge = `label·action`. |
 | `subject` | string | — | For project-type cards: emoji+name, e.g. `"🎯 Gacha"`. Badge = `label subject` (overrides action). |
 | `id` | string | — | Optional **stable key** for the browser overlay (check/drag persistence). If omitted, the key is derived as `track\|title` (with `#n` on duplicates). Add an explicit `id` if you plan to rename a card's title but keep its in-browser state. |
 
@@ -116,7 +116,7 @@ pending requests). Day-count colors via `daysClass` (≤7 fresh / ≤14 warm / >
 | `track` | string | Optional; lets the legend filter cover it too. |
 | `closed` | boolean | Terminal state → dimmed, struck through, hidden under 👁️ toggle. |
 
-Set `trackingTitle` to rename the section header (default `"📬 在管跟进"`).
+Set `trackingTitle` to rename the section header (default `"📬 In-flight"`).
 
 ## `notNow` (string[]) and `redlines` (string[])
 
@@ -135,12 +135,12 @@ is layered on top (done state, column membership, ordering).
 - The `DATA` block remains the **single source of truth for structure**. The overlay is ephemeral
   daily state.
 - A **sync banner** appears whenever the overlay differs from the file. It offers:
-  - **📤 复制最新 DATA** — reconstructs the full `DATA` (file + overlay applied) and copies it as a
+  - **📤 Copy latest DATA** — reconstructs the full `DATA` (file + overlay applied) and copies it as a
     valid `const DATA = {…};` literal. Paste it over the file's `DATA` block to **commit** the changes.
-  - **↺ 清空本地改动** — discards the overlay, reverting to the file.
+  - **↺ Reset local changes** — discards the overlay, reverting to the file.
 - **Key stability:** the overlay maps to cards by `id` (or derived `track|title`). Renaming a title
   without an `id` orphans that card's overlay entry. When the skill does a Refresh/Edit, prefer baking
-  in pending overlay changes first (ask the user to hit 复制最新 DATA, or read the banner state).
+  in pending overlay changes first (ask the user to hit 📤 Copy latest DATA, or read the banner state).
 - Theme choice (`lk:theme`) is also persisted in `localStorage`, independent of the overlay.
 
 ## Edge cases & gotchas
