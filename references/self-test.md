@@ -3,6 +3,11 @@
 Run this after editing any asset (`kanban-template.html`, `dashboard.css`, `dashboard-utils.js`) to
 confirm a generated board still renders. It's the exact check used when the skill was built. ~1 minute.
 
+> **Prefer the automated tests.** `npm install && npm test` runs the Playwright suite in
+> `tests/board.spec.mjs` (also on every push via `.github/workflows/ci.yml`) and covers everything
+> below plus drag-to-column and the sync overlay. This manual recipe is the fallback when Node /
+> Playwright isn't available.
+
 ## 1. Serve the assets
 
 The template uses relative `href`/`src`, so serve the `assets/` dir over HTTP (double-clicking the raw

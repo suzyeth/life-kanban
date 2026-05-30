@@ -1,5 +1,7 @@
 # life-kanban
 
+[![CI](https://github.com/suzyeth/life-kanban/actions/workflows/ci.yml/badge.svg)](https://github.com/suzyeth/life-kanban/actions/workflows/ci.yml)
+
 A Claude Code skill for creating and maintaining a **single-file HTML personal kanban board** — a
 "what should I look at / do right now" life + project dashboard.
 
@@ -78,13 +80,29 @@ life-kanban/
 ├── README.md
 ├── assets/
 │   ├── kanban-template.html       # generic render-complete skeleton (copy, edit DATA)
-│   ├── dashboard.css              # shared dark-theme base
+│   ├── dashboard.css              # shared dark-theme base + light theme
 │   ├── dashboard-utils.js         # esc / daysSince / daysClass / showDateWarning
 │   └── kanban-template.md         # optional terminal-readable mirror
-└── references/
-    ├── data-schema.md             # full DATA field reference
-    ├── maintenance-rhythm.md      # daily/weekly/deadline conventions + refresh checklist
-    └── customization.md           # tracks, colors, optional modules, sub-pages
+├── references/
+│   ├── data-schema.md             # full DATA field reference + overlay model
+│   ├── maintenance-rhythm.md      # daily/weekly/deadline conventions + refresh checklist
+│   ├── customization.md           # tracks, colors, themes, multi-board, sub-pages
+│   └── self-test.md               # manual ~1-min smoke recipe
+├── tests/                         # Playwright headless tests (board.spec.mjs + serve.mjs)
+├── playwright.config.mjs
+└── .github/workflows/ci.yml       # runs the tests on every push / PR
+```
+
+## Tests
+
+Headless [Playwright](https://playwright.dev) smoke tests cover render, dynamic track color, search,
+keyboard shortcuts, check-off + overlay + sync banner, drag-to-column persistence, theme toggle, and
+reset. They run on every push via GitHub Actions.
+
+```bash
+npm install
+npx playwright install chromium   # first run only
+npm test
 ```
 
 ## Design principles

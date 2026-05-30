@@ -1,0 +1,16 @@
+{
+  "name": "life-kanban",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable single-file HTML life/project-management kanban board (Claude Code skill).",
+  "license": "MIT",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "serve": "node tests/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
