@@ -138,3 +138,11 @@ test('lower sections are collapsed by default', async ({ page }) => {
   const open = await page.locator('#more-fold').evaluate(el => el.open);
   expect(open).toBe(false);
 });
+
+test('checkbox is keyboard-operable (focusable button + Enter)', async ({ page }) => {
+  const card = page.locator('#now-list .card').first();
+  const key = await card.getAttribute('data-key');
+  await card.locator('.chk').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator(`#now-list .card[data-key="${key}"]`)).toHaveClass(/done/);
+});
