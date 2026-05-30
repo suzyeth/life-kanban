@@ -206,65 +206,65 @@
 const DATA = {
   meta: {
     title: "__TITLE__",
-    today: "2026-01-01",          // ⚠️ YYYY-MM-DD · 与真实今天不符会弹红条
-    period: "W1",                 // 周期标签 (周/sprint/月, 随你)
+    today: "2026-01-01",          // ⚠️ YYYY-MM-DD · a red banner shows if this != real today
+    period: "W1",                 // period label (week / sprint / month — your call)
     periodRange: "2026-01-01 → 01-07",
     periodDay: 1,
     periodDayName: "Mon",
-    focus: "本周期 P0 = 在这里写一句最重要的主线焦点",
+    focus: "P0 this period = write your single most important focus here",
   },
-  // ── 多看板子页导航 (空数组则不显示). 每个看板共享 dashboard.css/utils, 互相 link ──
+  // ── Multi-board sub-page nav (empty = hidden). Boards share dashboard.css/utils, link to each other ──
   nav: [
-    // { label: "🟦 工作板", href: "工作板.html" },
-    // { label: "🌸 生活板", href: "生活板.html" },
+    // { label: "🟦 Work board", href: "work.html" },
+    // { label: "🌸 Life board", href: "life.html" },
   ],
-  // ── Track 定义 (互斥归类). 加一项 = 多一种颜色 + 一个图例筛选 chip ──
+  // ── Track definitions (mutually exclusive). Add one = a new color + a legend filter chip ──
   tracks: [
-    { id: "work",    label: "工作", color: "#58a6ff", emoji: "🟦" },
-    { id: "learn",   label: "学习", color: "#3fb950", emoji: "🟩" },
-    { id: "project", label: "项目", color: "#f0883e", emoji: "🟧" },
-    { id: "life",    label: "生活", color: "#ec4899", emoji: "🌸" },
-    { id: "system",  label: "系统", color: "#8b949e", emoji: "⬛" },
+    { id: "work",    label: "Work",    color: "#58a6ff", emoji: "🟦" },
+    { id: "learn",   label: "Learn",   color: "#3fb950", emoji: "🟩" },
+    { id: "project", label: "Project", color: "#f0883e", emoji: "🟧" },
+    { id: "life",    label: "Life",    color: "#ec4899", emoji: "🌸" },
+    { id: "system",  label: "System",  color: "#8b949e", emoji: "⬛" },
   ],
   progress: {
-    label: "本周期 P0 进度",
-    pct: null,                    // null = 自动按 week[] done 比例算; 填数字则手动覆盖
-    detail: "一句话现状描述 — 进度条下方显示。",
+    label: "P0 progress this period",
+    pct: null,                    // null = auto from week[] done ratio; a number overrides
+    detail: "One-line status — shown under the bar.",
   },
-  // 🔥 NOW · 今天 (一任务一卡, time = 时段)
+  // 🔥 NOW · Today (one task per card, time = time slot)
   now: [
-    { time: "上午 ⭐", title: "今天最重要的一件事", meta: "展开看细节 (可选)。点卡片展开。", tag: "P0", star: true, track: "work", action: "做" },
-    { time: "晚 21-22", title: "次要任务示例", meta: "track 决定左边框颜色 + badge。", track: "learn", action: "练" },
+    { time: "AM ⭐", title: "The single most important thing today", meta: "Optional detail — click the card to expand.", tag: "P0", star: true, track: "work", action: "do" },
+    { time: "21-22", title: "Secondary task example", meta: "track sets the left border color + badge.", track: "learn", action: "learn" },
   ],
-  // 📅 本周 (一任务一卡, day = 计划日; done:true 划线 + 默认折叠)
+  // 📅 This week (one task per card, day = planned day; done:true strikes through + collapses)
   week: [
-    { day: "Mon", title: "本周计划任务 A", meta: "", track: "work", action: "做" },
-    { day: "Wed ✅", title: "已完成任务示例", meta: "done 的卡默认隐藏, 点图例 👁️ 切换显示。", done: true, track: "project", subject: "🎯 示例项目" },
+    { day: "Mon", title: "This week's task A", meta: "", track: "work", action: "do" },
+    { day: "Wed ✅", title: "Completed task example", meta: "Done cards hide by default; toggle with the 👁️ chip.", done: true, track: "project", subject: "🎯 Sample project" },
   ],
-  // ⏭ NEXT & LATER (下周期 + 长线, when = 时间窗口)
+  // ⏭ NEXT & LATER (next period + long range, when = time window)
   next: [
-    { when: "下周期", title: "暂不做但记下的事", meta: "", track: "work", action: "做" },
-    { when: "🦘 Filler", title: "有空可做的填充任务", meta: "", track: "project", subject: "🎯 示例项目" },
+    { when: "Next period", title: "Noted but not now", meta: "", track: "work", action: "do" },
+    { when: "🦘 Filler", title: "Filler task for spare time", meta: "", track: "project", subject: "🎯 Sample project" },
   ],
-  // 🗓 长线时间轴 (Gantt, 非线性 log 轴 · type: today|milestone|deadline|visa)
+  // 🗓 Timeline (Gantt, non-linear log axis · type: today|milestone|deadline|visa)
   timeline: [
-    { date: "2026-01-01", label: "今天", type: "today", detail: "当前位置。" },
-    { date: "2026-02-01", label: "里程碑示例", type: "milestone", detail: "展开看完整描述。" },
-    { date: "2026-04-01", label: "硬 deadline 示例", type: "deadline", detail: "红点 = 不可滑的死线。" },
+    { date: "2026-01-01", label: "Today", type: "today", detail: "Current position." },
+    { date: "2026-02-01", label: "Milestone example", type: "milestone", detail: "Expand for the full detail." },
+    { date: "2026-04-01", label: "Hard deadline example", type: "deadline", detail: "Red dot = a deadline that can't slip." },
   ],
-  // 📬 可选: 通用跟进表 (投递在管 / 申请 / 任何已启动待回应的事). 不用就留 []
+  // 📬 Optional: generic in-flight tracking (applications / sent asks / anything launched & awaiting). Leave [] if unused
   tracking: [
-    // { title: "对象名", sub: "副标题/角色", track: "work", date: "2026-01-01", status: "进行中", closed: false },
+    // { title: "Name", sub: "subtitle / role", track: "work", date: "2026-01-01", status: "in progress", closed: false },
   ],
-  trackingTitle: "📬 在管跟进",   // tracking section 的标题
-  // 🚫 NOT NOW · 显式不做 (看到名字直接跳过, 防分心)
+  trackingTitle: "📬 In-flight",   // tracking section header
+  // 🚫 NOT NOW · explicitly skipped (see the name, skip it — kills re-deciding)
   notNow: [
-    "示例: 本周期显式 cut 的事 1",
-    "示例: 本周期显式 cut 的事 2",
+    "Example: something explicitly cut this period",
+    "Example: another thing not doing now",
   ],
-  // ⛔ 红线 · 永远适用 (跨周期不变的硬约束)
+  // ⛔ Redlines · always apply (hard constraints that don't change between periods)
   redlines: [
-    "示例: 永远不做的事 / 硬约束 1",
+    "Example: a hard constraint that always applies",
   ],
 };
 </script>
@@ -282,8 +282,8 @@ const DATA = {
 <div class="sync-banner" id="sync-banner" style="display:none;">
   <span id="sync-msg"></span>
   <span class="sync-actions">
-    <button id="sync-copy" class="tool-btn" title="把含本地改动的最新 DATA 复制出来,粘回文件顶部 DATA 块 = 落盘">📤 复制最新 DATA</button>
-    <button id="sync-reset" class="tool-btn" title="丢弃所有本地改动,回到文件状态">↺ 清空本地改动</button>
+    <button id="sync-copy" class="tool-btn" title="Copy the latest DATA (with local changes) — paste it over the file's DATA block to commit">📤 Copy latest DATA</button>
+    <button id="sync-reset" class="tool-btn" title="Discard all local changes, revert to the file">↺ Reset local changes</button>
   </span>
 </div>
 
@@ -297,21 +297,21 @@ const DATA = {
 </div>
 
 <div class="toolbar">
-  <input id="search" type="search" placeholder="🔍 搜索卡片… ( / 聚焦 · Esc 清空 )" autocomplete="off" spellcheck="false">
-  <button id="theme-toggle" class="tool-btn" title="切换深 / 浅主题 (记忆)">🌗 主题</button>
-  <button id="copy-today" class="tool-btn" title="把 NOW 列复制成纯文本">📋 复制今天</button>
-  <span class="kbd-hint">⌨ <b>/</b> 搜索 · <b>1-9</b> 切 track · <b>a</b> 全部 · <b>d</b> 显隐已完成 · <b>p</b> 打印</span>
+  <input id="search" type="search" placeholder="🔍 Search cards…  ( / focus · Esc clear )" autocomplete="off" spellcheck="false">
+  <button id="theme-toggle" class="tool-btn" title="Toggle dark / light theme (remembered)">🌗 Theme</button>
+  <button id="copy-today" class="tool-btn" title="Copy the NOW column as plain text">📋 Copy today</button>
+  <span class="kbd-hint">⌨ <b>/</b> search · <b>1-9</b> track · <b>a</b> all · <b>d</b> show/hide done · <b>p</b> print</span>
 </div>
 
 <div class="legend" id="legend"></div>
 
 <div class="kanban">
   <div class="col now">
-    <h2>🔥 NOW · 今天 <span class="count" id="now-count"></span></h2>
+    <h2>🔥 NOW · Today <span class="count" id="now-count"></span></h2>
     <div id="now-list"></div>
   </div>
   <div class="col week">
-    <h2>📅 <span id="week-col-label"></span> 本周 <span class="count" id="week-count"></span></h2>
+    <h2>📅 <span id="week-col-label"></span> This week <span class="count" id="week-count"></span></h2>
     <div id="week-list"></div>
   </div>
   <div class="col later">
@@ -326,27 +326,27 @@ const DATA = {
 </section>
 
 <section class="timeline">
-  <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">🗓 长线时间轴</h2>
+  <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">🗓 Timeline</h2>
   <div class="tl-track"><div class="tl-inner" id="timeline"></div></div>
   <details style="margin-top: 12px;">
-    <summary style="cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; user-select: none;">▸ 展开事件详细描述</summary>
+    <summary style="cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; user-select: none;">▸ Expand event details</summary>
     <div class="tl-detail" id="timeline-detail"></div>
   </details>
 </section>
 
 <div class="rails">
   <div class="rail">
-    <h2>🚫 NOT NOW · 显式不做</h2>
+    <h2>🚫 NOT NOW · skipped</h2>
     <div class="chips" id="not-now"></div>
   </div>
   <div class="rail">
-    <h2>⛔ 红线 · 永远适用</h2>
+    <h2>⛔ Redlines · always apply</h2>
     <ul class="redlines" id="redlines"></ul>
   </div>
 </div>
 
 <footer>
-  数据源 ⟶ <code>看板.html</code> 顶部 <code>DATA</code> 块 · 维护节奏 ⟶ 每天 30s 看 NOW · 周期末复盘整页刷新
+  Source ⟶ the <code>DATA</code> block at the top of this file · Rhythm ⟶ 30s on NOW daily · full refresh at each period's review
 </footer>
 
 <script src="dashboard-utils.js"></script>
@@ -445,7 +445,7 @@ const DATA = {
   const renderCard = (c) => {
     const d = c.d, done = effDone(c);
     return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${trackClass(d.track)}" data-key="${esc(c.key)}" draggable="true">
-      <span class="chk" title="打勾 / 取消">${done?'✓':''}</span>
+      <span class="chk" title="Toggle done">${done?'✓':''}</span>
       ${trackBadge(d)}
       ${d.tag?`<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>`:''}
       <span class="time">${esc(c.label)}</span>
@@ -517,7 +517,7 @@ const DATA = {
     const banner = $("sync-banner");
     if (n === 0 && !hasOrder) { banner.style.display = 'none'; return; }
     banner.style.display = '';
-    $("sync-msg").innerHTML = `📝 有 <b>${n}</b> 处本地改动${hasOrder ? ' (含排序)' : ''} 未写回文件 — 复盘时点「复制最新 DATA」粘回顶部 DATA 块即落盘。`;
+    $("sync-msg").innerHTML = `📝 <b>${n}</b> local change(s)${hasOrder ? ' (incl. reorder)' : ''} not yet written to the file — click 📤 Copy latest DATA and paste it over the DATA block to commit.`;
   };
 
   const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshBanner(); reapplyView(); };
@@ -567,7 +567,7 @@ const DATA = {
 
   // —— 同步横幅按钮 ——
   $("sync-reset").addEventListener('click', () => {
-    if (!confirm('丢弃所有本地改动, 回到文件 DATA 状态?')) return;
+    if (!confirm('Discard all local changes and revert to the file DATA?')) return;
     ov = { done: {}, col: {}, order: {} }; saveOv(); repaint();
   });
   $("sync-copy").addEventListener('click', async () => {
@@ -589,9 +589,9 @@ const DATA = {
     out.now = b.now.map(clean); out.week = b.week.map(clean); out.next = b.next.map(clean);
     const text = 'const DATA = ' + JSON.stringify(out, null, 2) + ';';
     const btn = $("sync-copy");
-    try { await navigator.clipboard.writeText(text); btn.textContent = '✅ 已复制 · 粘回顶部 DATA 块'; btn.classList.add('ok'); }
-    catch { window.prompt('复制以下内容, 替换文件顶部 DATA 块:', text); }
-    setTimeout(() => { btn.textContent = '📤 复制最新 DATA'; btn.classList.remove('ok'); }, 2400);
+    try { await navigator.clipboard.writeText(text); btn.textContent = '✅ Copied · paste over DATA block'; btn.classList.add('ok'); }
+    catch { window.prompt('Copy the text below and replace the DATA block at the top of the file:', text); }
+    setTimeout(() => { btn.textContent = '📤 Copy latest DATA'; btn.classList.remove('ok'); }, 2400);
   });
 
   // —— 主题切换 (记忆) ——
@@ -613,7 +613,7 @@ const DATA = {
   // 6. 可选 tracking 表
   if (DATA.tracking && DATA.tracking.length) {
     $("tracking-section").style.display = '';
-    $("tracking-title").textContent = DATA.trackingTitle || '📬 在管跟进';
+    $("tracking-title").textContent = DATA.trackingTitle || '📬 In-flight';
     $("tracking-list").innerHTML = DATA.tracking.map(a => {
       const days = daysSince(a.date, todayDate);
       const cls = a.closed ? 'closed' : daysClass(days);
@@ -648,17 +648,17 @@ const DATA = {
   $("timeline-detail").innerHTML = tlEvents.map(e => {
     const days = Math.floor((e.d - todayDate) / dayMs);
     let cd;
-    if (days === 0) cd = "今天";
-    else if (days < 0) cd = `${-days} 天前`;
-    else if (days < 30) cd = `${days} 天后`;
-    else if (days < 365) cd = `~${Math.round(days/30)} 个月后`;
-    else cd = `~${(days/365).toFixed(1)} 年后`;
-    const badge = ({today:'今',milestone:'里程',deadline:'死线',visa:'签证'})[e.type] || '·';
+    if (days === 0) cd = "today";
+    else if (days < 0) cd = `${-days}d ago`;
+    else if (days < 30) cd = `in ${days}d`;
+    else if (days < 365) cd = `~${Math.round(days/30)}mo`;
+    else cd = `~${(days/365).toFixed(1)}y`;
+    const badge = ({today:'NOW',milestone:'MILE',deadline:'DUE',visa:'VISA'})[e.type] || '·';
     return `<div class="tl-row ${esc(e.type)}">
       <div class="tl-row-date">${esc(e.date)}<br><span class="badge">${esc(badge)}</span></div>
       <div class="tl-row-body">
         <div class="tl-row-label">${esc(e.label)} <span style="color:var(--muted);font-weight:500;">· ${esc(cd)}</span></div>
-        <div class="tl-row-text">${esc(e.detail || '(暂无详细描述)')}</div>
+        <div class="tl-row-text">${esc(e.detail || '(no details)')}</div>
       </div>
     </div>`;
   }).join('');
@@ -668,11 +668,11 @@ const DATA = {
   $("redlines").innerHTML = DATA.redlines.map(r => `<li>${esc(r)}</li>`).join('');
 
   // 9. Legend 骨架 (counts 由 repaint→refreshLegendCounts 填) + 筛选 (activeFilter) + done 切换
-  let legendHtml = `<span class="legend-chip active" data-filter="all">📂 全部 <span class="lc-count"></span></span>`;
+  let legendHtml = `<span class="legend-chip active" data-filter="all">📂 All <span class="lc-count"></span></span>`;
   DATA.tracks.forEach(t => {
     legendHtml += `<span class="legend-chip lc-${esc(t.id)}" data-filter="${esc(t.id)}">${esc(t.emoji || '')} ${esc(t.label)} <span class="lc-count"></span></span>`;
   });
-  legendHtml += `<span class="legend-chip" id="toggle-done" style="margin-left:auto;cursor:pointer;" title="默认隐藏已完成 · 点这里切换">👁️ <span id="toggle-done-label">显示已完成</span> <span class="lc-count" id="done-count"></span></span>`;
+  legendHtml += `<span class="legend-chip" id="toggle-done" style="margin-left:auto;cursor:pointer;" title="Done hidden by default · click to toggle">👁️ <span id="toggle-done-label">Show done</span> <span class="lc-count" id="done-count"></span></span>`;
   $("legend").innerHTML = legendHtml;
 
   document.querySelectorAll('.legend-chip[data-filter]').forEach(chip => {
@@ -688,7 +688,7 @@ const DATA = {
   const toggleLabel = $("toggle-done-label");
   toggleChip.addEventListener('click', () => {
     const hidden = document.body.classList.toggle('hide-done');
-    toggleLabel.textContent = hidden ? '显示已完成' : '隐藏已完成';
+    toggleLabel.textContent = hidden ? 'Show done' : 'Hide done';
     toggleChip.classList.toggle('active', !hidden);
   });
 
@@ -702,7 +702,7 @@ const DATA = {
   // 11. 复制今天 (NOW 列有效内容 → 纯文本, 贴进日记/站会)
   const copyBtn = $("copy-today");
   copyBtn.addEventListener('click', async () => {
-    const head = `🔥 今天 ${M.periodDayName} ${M.today} · ${M.period} Day ${M.periodDay}\n焦点: ${M.focus}\n`;
+    const head = `🔥 Today ${M.periodDayName} ${M.today} · ${M.period} Day ${M.periodDay}\nFocus: ${M.focus}\n`;
     const lines = bucket().now.map(c => {
       const d = c.d;
       const mark = `${effDone(c) ? '✅' : '⬜'}${d.star ? ' ⭐' : ''}${d.tag ? ' ' + d.tag : ''}`;
@@ -711,13 +711,13 @@ const DATA = {
     const text = head + '\n' + lines.join('\n');
     try {
       await navigator.clipboard.writeText(text);
-      copyBtn.textContent = '✅ 已复制';
+      copyBtn.textContent = '✅ Copied';
       copyBtn.classList.add('ok');
     } catch {
-      copyBtn.textContent = '⚠ 复制失败 (手动选)';
-      window.prompt('复制以下文本:', text);
+      copyBtn.textContent = '⚠ Copy failed (select manually)';
+      window.prompt('Copy the text below:', text);
     }
-    setTimeout(() => { copyBtn.textContent = '📋 复制今天'; copyBtn.classList.remove('ok'); }, 1800);
+    setTimeout(() => { copyBtn.textContent = '📋 Copy today'; copyBtn.classList.remove('ok'); }, 1800);
   });
 
   // 12. 键盘快捷键: / 搜索 · 1-9 切 track · a 全部 · d 显隐 done · p 打印 · Esc 清空

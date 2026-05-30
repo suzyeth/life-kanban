@@ -1,80 +1,80 @@
 # 📋 __TITLE__ — Life Kanban
 
-> **最后更新**: 2026-01-01 (Mon, W1 Day 1) · 整页刷新
-> **维护节奏**: 周期末复盘后整页刷新 + 每天起床后 30 秒微调"今天"块
-> **用法**: 第一眼看 NOW → 不够再翻详细文档。HTML 版见 `看板.html` (同源数据)
+> **Last updated**: 2026-01-01 (Mon, W1 Day 1) · full refresh
+> **Rhythm**: full-page refresh after each period's review + a 30-second tweak of the "today" block each morning
+> **How to use**: glance at NOW first → dig into the detail docs only if needed. HTML version: `board.html` (same data)
 
 ---
 
-## 🔥 NOW · 今天 (Mon 2026-01-01 W1 D1)
+## 🔥 NOW · Today (Mon 2026-01-01 W1 D1)
 
-> 一句话现状: 在这里写今天的真实状态。
+> One-line status: write today's real state here.
 
-| 时段 | 任务 | 状态 |
+| Time | Task | Status |
 |---|---|---|
-| 上午 ⭐ | **今天最重要的一件事** | ⬜ |
-| 晚 | 次要任务示例 | ⬜ |
+| AM ⭐ | **The single most important thing today** | ⬜ |
+| Evening | Secondary task example | ⬜ |
 
-**今日硬目标**: 一句话写死今天必须完成的事。
-**红线**: 跨周期不变的硬约束(从下方红线复制最相关的一条)。
+**Today's hard goal**: pin down the one thing that must get done today.
+**Redline**: a hard constraint that doesn't change (copy the most relevant one from below).
 
 ---
 
 ## 📅 THIS WEEK · W1 (2026-01-01 → 01-07)
 
 ```
-┌── 🎯 主线 P0 ───────────────────────────────────┐
-│ Mon  ⬜ 任务 A                                    │
-│ Wed  ✅ 已完成任务示例                            │
-│ Fri  ⬜ 任务 B                                    │
+┌── 🎯 Main line P0 ──────────────────────────────┐
+│ Mon  ⬜ Task A                                    │
+│ Wed  ✅ Completed task example                    │
+│ Fri  ⬜ Task B                                    │
 └──────────────────────────────────────────────────┘
 
-┌── 📚 次线 P1 ───────────────────────────────────┐
-│ ⬜ 学习/项目任务                                  │
+┌── 📚 Secondary P1 ──────────────────────────────┐
+│ ⬜ Learning / project task                        │
 └──────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⏭ NEXT & LATER · 下周期 + 长线
+## ⏭ NEXT & LATER · next period + long range
 
-| 时间窗口 | 任务 | track | 备注 |
+| Window | Task | track | Notes |
 |---|---|---|---|
-| 下周期 | 暂不做但记下的事 | 工作 | |
-| 🦘 Filler | 有空可做的填充任务 | 项目 | |
+| Next period | Noted but not now | Work | |
+| 🦘 Filler | Filler task for spare time | Project | |
 
 ---
 
-## 🗓 长线时间轴
+## 🗓 Timeline
 
-| 日期 | 事件 | 类型 | 倒计时 | 说明 |
+| Date | Event | Type | Countdown | Notes |
 |---|---|---|---|---|
-| 2026-01-01 | 今天 | 今 | — | 当前位置 |
-| 2026-02-01 | 里程碑示例 | 里程 | ~1 个月后 | 展开说明 |
-| 2026-04-01 | 硬 deadline 示例 | 死线 | ~3 个月后 | 不可滑 |
+| 2026-01-01 | Today | NOW | — | Current position |
+| 2026-02-01 | Milestone example | MILE | ~1mo | Expand for detail |
+| 2026-04-01 | Hard deadline example | DUE | ~3mo | Can't slip |
 
 ---
 
-## 🚫 NOT NOW · 显式不做
+## 🚫 NOT NOW · explicitly skipped
 
-> 写下来是为了**不再分心想它们** — 看到名字直接跳过
+> Writing them down stops you from re-deciding — see the name, skip it.
 
-- ❌ 示例: 本周期显式 cut 的事 1
-- ❌ 示例: 本周期显式 cut 的事 2
-
----
-
-## ⛔ 红线 · 永远适用
-
-- 示例: 永远不做的事 / 硬约束 1
+- ❌ Example: something explicitly cut this period
+- ❌ Example: another thing not doing now
 
 ---
 
-## 🔁 更新约定
+## ⛔ Redlines · always apply
 
-| 频率 | 动作 |
+- Example: a hard constraint that always applies
+
+---
+
+## 🔁 Update conventions
+
+| Frequency | Action |
 |---|---|
-| **每天早起 30s** | 看 NOW 块 → 起床后第一件事就开始 |
-| **每天晚收 30s** | NOW 块打勾 / 改状态 → 不补昨天遗漏,挪到今天就行 |
-| **每周期末复盘** | 整页刷新: NOW 清空 → THIS WEEK 归档 → NEXT 上提 → LATER 滚动 |
-| **deadline 进 7 天窗口** | 顶到 NOW 段 |
+| **Every morning, 30s** | Look at NOW → start the first thing immediately |
+| **Every evening, 30s** | Tick / restatus NOW cards → don't backfill yesterday, just move it to today |
+| **End of each period** | Full refresh: clear NOW → archive THIS WEEK → promote NEXT → roll LATER |
+| **Deadline enters the 7-day window** | Promote it to NOW |

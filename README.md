@@ -13,55 +13,57 @@ A Claude Code skill for creating and maintaining a **single-file HTML personal k
 
 | Mode | Trigger | Result |
 |---|---|---|
-| **Create** | "做个看板" / no board exists | Scaffolds `看板.html` + `dashboard.css` + `dashboard-utils.js` from bundled templates, seeded with your real focus. |
-| **Edit** | "加一项" / "打勾" / "挪到今天" / "删掉" | Small precise edits to the top `DATA` block (add/move/complete/remove cards). |
-| **Refresh** | "复盘" / "刷新看板" / "进新的一周" | Full-page reset for a new period — rolls columns, advances timeline, rewrites focus & NOT-NOW. |
-| **Analyze** | "汇总" / "现在啥情况" / "哪些落后了" | Reads the board and reports per-track counts, NOW load, slips, nearest deadline. |
+| **Create** | "make a board" / no board exists | Scaffolds `board.html` + `dashboard.css` + `dashboard-utils.js` from bundled templates, seeded with your real focus. |
+| **Edit** | "add a task" / "check it off" / "move to today" / "delete" | Small precise edits to the top `DATA` block (add/move/complete/remove cards). |
+| **Refresh** | "weekly review" / "refresh the board" / "start a new week" | Full-page reset for a new period — rolls columns, advances timeline, rewrites focus & NOT-NOW. |
+| **Analyze** | "summarize" / "where am I" / "what's slipping" | Reads the board and reports per-track counts, NOW load, slips, nearest deadline. |
 
-## Workflow loop · 用法闭环
+<sub>Triggers are examples — the skill also activates on the Chinese equivalents (做个看板 / 加一项 / 复盘 / 汇总 …).</sub>
 
-How the pieces fit in real use: a **weekly big loop** (I refresh the file) wrapped around a **daily
-micro-loop** (you tick/drag in the browser), with mid-week edits and deadline promotion feeding the
-file. The file `DATA` is canonical; browser edits live in a localStorage overlay until synced back.
+## Workflow loop
+
+How the pieces fit in real use: a **weekly big loop** (the agent refreshes the file) wrapped around a
+**daily micro-loop** (you tick/drag in the browser), with mid-week edits and deadline promotion feeding
+the file. The file `DATA` is canonical; browser edits live in a localStorage overlay until synced back.
 
 ```mermaid
 flowchart TD
-  R["🗓️ 周日复盘 · Refresh 模式<br/>对我说「复盘」→ 我读真实进度<br/>整页刷新 DATA · 推进时间轴 · 重写焦点"]
-  R --> NEW["📄 文件 DATA = 本周最新真相<br/>(git push 备份)"]
+  R["🗓️ Weekly review · Refresh mode<br/>say &quot;weekly review&quot; → agent reads real progress<br/>full-page refresh DATA · advance timeline · rewrite focus"]
+  R --> NEW["📄 File DATA = the week's source of truth<br/>(git push to back up)"]
 
-  NEW --> G["☀️ 每天早 30s · 看 NOW 列 → 开干"]
-  G --> T["☑ 打勾 / 🖱️ 拖拽卡片<br/>浏览器内, 存 localStorage 叠加层<br/>(不动文件)"]
-  T --> B["📝 同步横幅: N 处本地改动未落盘"]
+  NEW --> G["☀️ Daily 30s · scan NOW → start working"]
+  G --> T["☑ Check off / 🖱️ drag cards<br/>in the browser, saved to a localStorage overlay<br/>(file untouched)"]
+  T --> B["📝 Sync banner: N local changes not yet committed"]
   B --> G
 
-  IN1["💬 周中临时:「加一项 X / 改成 Y / 删掉」<br/>Edit 模式 → 我精准改 DATA"] --> NEW
-  IN2["⏰ deadline 进 7 天窗口<br/>→ 顶到 NOW 列"] --> NEW
+  IN1["💬 Mid-week: &quot;add task X / change Y / delete&quot;<br/>Edit mode → agent edits DATA precisely"] --> NEW
+  IN2["⏰ deadline enters the 7-day window<br/>→ promoted to NOW"] --> NEW
 
-  B -->|"想落盘 · 或到周日"| S["📤 复制最新 DATA → 粘回文件顶部<br/>↺ 清空叠加层 → 文件重新成为真相"]
+  B -->|"to commit · or at review time"| S["📤 Copy latest DATA → paste over the file<br/>↺ reset overlay → file is canonical again"]
   S --> R
 ```
 
-- **周日** 我做整页 Refresh,文件回到唯一真相。
-- **每天** 你只在浏览器里勾/拖,改动攒在叠加层(横幅显示有几处未落盘)。
-- **周中** 要加/改任务直接跟我说一句(Edit),我改文件;deadline 进 7 天我帮你顶到 NOW。
-- **落盘** 任何时候(或下次复盘前)点「复制最新 DATA」粘回文件,叠加层清空,闭环回到周日。
+- **Weekly** — the agent does a full Refresh; the file becomes the single source of truth again.
+- **Daily** — you only tick/drag in the browser; changes accumulate in the overlay (the banner shows how many aren't committed).
+- **Mid-week** — to add/change a task just say so (Edit) and the agent edits the file; a deadline entering the 7-day window gets promoted to NOW.
+- **Commit** — anytime (or before the next review) hit 📤 Copy latest DATA, paste it back, and the overlay clears — looping back to the weekly review.
 
 ## The board
 
 One HTML file. The `DATA = {...}` block at the top is the **single source of truth**; the render
 script below it is generic. Features:
 
-- 3 columns — 🔥 NOW·今天 / 📅 本周 / ⏭ NEXT&LATER
+- 3 columns — 🔥 NOW·Today / 📅 This week / ⏭ NEXT&LATER
 - **Data-driven color tracks** (define categories in `DATA.tracks`, CSS injected at runtime)
 - Auto progress bar (from `week[]` done ratio)
 - Non-linear (log-scale) long-range timeline — near-term magnified
 - Clickable legend filter + show/hide-done toggle
 - **Instant search** box — live-filter cards by text, stacks with the track filter
 - **Keyboard shortcuts** — `/` search · `1-9` switch track · `a` all · `d` show/hide done · `p` print · `Esc` clear
-- **复制今天** button — copy the NOW column as plain text for a daily note / standup
+- **Copy today** button — copy the NOW column as plain text for a daily note / standup
 - **Print stylesheet** — `Ctrl/⌘+P` exports a clean light-theme PDF (expands all cards, ignores filters)
 - **In-browser check + drag** — tick a card's ☑ or drag it between/within columns, *without editing the file*
-- **localStorage overlay + one-click sync** — browser edits persist locally as an overlay; a banner shows pending changes with **📤 复制最新 DATA** (paste back into the file = commit) and **↺ 清空本地改动**. The file `DATA` block stays the single source of truth.
+- **localStorage overlay + one-click sync** — browser edits persist locally as an overlay; a banner shows pending changes with **📤 Copy latest DATA** (paste back into the file = commit) and **↺ Reset local changes**. The file `DATA` block stays the single source of truth.
 - **🌗 Light / dark theme** toggle (persisted per browser)
 - **Multi-board nav** — `DATA.nav` renders a sub-page chip row to link several boards (work / life / …) that share `dashboard.css` + `dashboard-utils.js`
 - NOT-NOW + redlines rails
@@ -87,5 +89,5 @@ life-kanban/
 
 ## Design principles
 
-单页可读 · 现实校准 (refresh from real files, not memory) · deadline 优先 · 敢标 NOT NOW ·
-slip honestly. See `references/maintenance-rhythm.md`.
+Fits on one screen · reality-calibrated (refresh from real files, not memory) · deadlines first ·
+dare to mark NOT NOW · slip honestly. See `references/maintenance-rhythm.md`.

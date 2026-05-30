@@ -32,12 +32,12 @@ function daysClass(d) {
   return 'fresh';
 }
 
-// 倒计时文案 (正 → "X 天后", 0 → "今天", 负 → "已过 X 天")
+// Countdown label (positive -> "in Xd", 0 -> "today", negative -> "Xd overdue")
 function countdownLabel(days) {
   if (days == null) return '';
-  if (days === 0) return '今天';
-  if (days > 0) return `${days} 天后`;
-  return `已过 ${-days} 天 (该启动了)`;
+  if (days === 0) return 'today';
+  if (days > 0) return `in ${days}d`;
+  return `${-days}d overdue (start it)`;
 }
 
 // Auto-shown red banner if DATA.meta.today (or arg) != 真实今天 → 提醒数据 stale
@@ -47,6 +47,6 @@ function showDateWarning(dataToday) {
   if (dataToday === actual) return;
   const banner = document.createElement('div');
   banner.className = 'date-warning';
-  banner.innerHTML = `⚠️ 页面数据日期 <b>${esc(dataToday)}</b>,今天实际是 <b>${esc(actual)}</b> — 数据 stale,请更新 DATA 块`;
+  banner.innerHTML = `⚠️ Page data is dated <b>${esc(dataToday)}</b>, but today is <b>${esc(actual)}</b> — data is stale, update the DATA block`;
   document.body.insertBefore(banner, document.body.firstChild);
 }
