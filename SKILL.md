@@ -26,6 +26,12 @@ Built-in viewing aids (no data-model impact): instant **search** box, **keyboard
 a **复制今天** button (NOW column → clipboard as plain text), and a **print stylesheet**
 (`Ctrl/⌘+P` → clean light-theme PDF that expands all cards and ignores active filters).
 
+Daily-use interactivity (a **localStorage overlay**, not file edits): tick a card's ☑ or **drag**
+it between/within columns in the browser; changes persist locally and a **sync banner** offers
+**📤 复制最新 DATA** (paste back to commit) + **↺ 清空本地改动**. Also a **🌗 light/dark** toggle
+(persisted) and **multi-board nav** via `DATA.nav`. The `DATA` block stays the structural source of
+truth; the overlay is ephemeral. See `references/data-schema.md` → "Browser overlay vs the file".
+
 **Core idea — edit data, never markup.** All board changes are edits to the `DATA = {...}`
 object at the top of the HTML. The render script below it is generic and never needs touching.
 This keeps every operation a small, safe, diff-able JS-object edit.
@@ -124,6 +130,10 @@ copy the assets, then edit only the `DATA` block.
    placeholders and tell them so.
 6. **Fill `notNow[]` and `redlines[]`** if the user mentioned things to explicitly avoid; otherwise
    leave one placeholder each.
+7. **Multi-board (optional)** — if the user wants separate boards (e.g. 工作板 + 生活板), copy the
+   template once per board (sharing the same `dashboard.css`/`dashboard-utils.js`) and give each the
+   same `DATA.nav` array linking the others. Use a **distinct `meta.title` per board** (overlay state
+   is keyed by title). See `references/customization.md` → "Multi-board".
 
 **Exit gate:** the file opens in a browser with no console errors and renders the user's real focus
 (not just placeholders). Verify per Step 6 before declaring done.
@@ -148,6 +158,10 @@ Rules:
 - One task = one card. Don't cram multiple actions into one title; split them.
 - Keep `meta` as the expandable detail; keep `title` short and scannable.
 - Match the existing track ids exactly — a typo'd `track` just renders uncolored.
+- **Browser overlay first:** the user may have ticked/dragged cards in-browser (a `localStorage`
+  overlay, shown by the sync banner). Those are *not* in the file yet. Before hand-editing the `DATA`
+  block, ask whether to bake in pending overlay changes (user hits **📤 复制最新 DATA** → you paste it
+  in) so your file edits and their browser state don't fight. See `references/data-schema.md`.
 - After editing, re-verify per Step 6 (the page must still render).
 
 See `references/data-schema.md` for the full field reference and `references/maintenance-rhythm.md`
@@ -160,7 +174,9 @@ for when each kind of edit happens in the daily/weekly loop.
 The periodic "复盘" that resets the board for a new cycle. Follow `references/maintenance-rhythm.md`.
 
 1. **Ground in reality first** — read the user's actual plan/status files (or ask) before rewriting.
-   Don't refresh from memory. Confirm what *actually* got done vs slipped.
+   Don't refresh from memory. Confirm what *actually* got done vs slipped. **Also bake in any browser
+   overlay** (if the sync banner shows pending ticks/drags, have the user hit 📤 复制最新 DATA and start
+   the refresh from *that*), then the overlay can be cleared (↺) so the file is canonical again.
 2. **Update `meta`** — new `today`, `period`, `periodRange`, `periodDay`, `periodDayName`, and a
    rewritten one-line `focus`.
 3. **Roll the columns**:

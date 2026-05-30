@@ -145,11 +145,39 @@
   mark { background: rgba(240,136,62,0.35); color: var(--text); border-radius: 2px; padding: 0 1px; }
   @media (max-width: 760px) { .kbd-hint { display: none; } }
 
+  /* 卡片打勾 (checkbox) + 拖拽 */
+  .card { padding-left: 30px; }
+  .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.28); }
+  .card .chk { position: absolute; left: 9px; top: 10px; width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 11px; line-height: 13px; text-align: center; color: var(--green); background: var(--bg-elev); user-select: none; transition: all 0.12s; z-index: 3; }
+  .card .chk:hover { border-color: var(--green); transform: scale(1.12); }
+  .card.done .chk { background: var(--green); color: var(--bg); border-color: var(--green); }
+  .card[draggable="true"] { cursor: grab; }
+  .card.dragging { opacity: 0.4; }
+  .col.drop-target { outline: 2px dashed var(--accent); outline-offset: -4px; }
+  .col .drop-line { height: 0; border-top: 2px solid var(--accent); margin: 2px 0; }
+
+  /* 同步回文件横幅 (有本地改动时显示) */
+  .sync-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: rgba(240,136,62,0.12); border: 1px solid var(--accent); color: var(--text); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+  .sync-banner b { color: var(--accent); }
+  .sync-banner .sync-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* 多看板子页导航 */
+  .subpage-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .subpage-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 16px; background: var(--bg-elev); border: 1px solid var(--border); font-size: 13px; color: var(--muted); text-decoration: none; transition: all 0.15s; }
+  .subpage-nav a:hover { background: var(--bg-card); color: var(--text); border-color: var(--accent); text-decoration: none; }
+  .subpage-nav a.current { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+  /* 浅色主题: hero 渐变 + star 卡背景需单独覆盖 (它们是硬编码深色) */
+  html.light .hero { background: linear-gradient(135deg, #ffffff 0%, #eef1f4 100%); }
+  html.light .card.star { background: linear-gradient(90deg, rgba(188,76,0,0.07) 0%, var(--bg-card) 60%); }
+  html.light .card.has-meta:not(.star):hover { background: #f0f3f6; }
+
   /* Print → 干净 PDF: 展开全部, 隐藏交互件, 浅底黑字省墨 */
   @media print {
     :root { --bg:#fff; --bg-elev:#fff; --bg-card:#fff; --text:#111; --muted:#555; --border:#ccc; }
     body { padding: 0; max-width: none; }
-    .toolbar, .legend, footer, details summary, .col::-webkit-scrollbar { display: none !important; }
+    .toolbar, .legend, footer, details summary, .col::-webkit-scrollbar, .sync-banner, .card .chk { display: none !important; }
+    .card { padding-left: 12px; }
     .hero { background: #f4f4f4 !important; }
     .kanban { grid-template-columns: 1fr 1fr 1fr; }
     .col { max-height: none !important; overflow: visible !important; break-inside: avoid; }
@@ -168,7 +196,10 @@
 <!-- DATA — 改这里 = 改看板。这是整页唯一数据源。                    -->
 <!-- 卡片 schema 见 references/data-schema.md                       -->
 <!--   card: { track, action?, subject?, title, meta?, tag?,        -->
-<!--           star?, done?, time|day|when }                        -->
+<!--           star?, done?, time|day|when, id? }                   -->
+<!--   id?: 可选稳定键 (浏览器打勾/拖拽用; 不填则按 track|title 推导) -->
+<!--   浏览器内打勾/拖拽 = 临时叠加层(localStorage), 顶部横幅可一键   -->
+<!--   「复制最新 DATA」写回此处 = 落盘。改 title 前最好先同步或填 id。 -->
 <!--   tracks[] 定义颜色 + 图例, 想加 track 就往这里加一项即可。      -->
 <!-- ============================================================= -->
 <script>
@@ -182,6 +213,11 @@ const DATA = {
     periodDayName: "Mon",
     focus: "本周期 P0 = 在这里写一句最重要的主线焦点",
   },
+  // ── 多看板子页导航 (空数组则不显示). 每个看板共享 dashboard.css/utils, 互相 link ──
+  nav: [
+    // { label: "🟦 工作板", href: "工作板.html" },
+    // { label: "🌸 生活板", href: "生活板.html" },
+  ],
   // ── Track 定义 (互斥归类). 加一项 = 多一种颜色 + 一个图例筛选 chip ──
   tracks: [
     { id: "work",    label: "工作", color: "#58a6ff", emoji: "🟦" },
@@ -241,6 +277,16 @@ const DATA = {
   <div class="focus-pill"><span>P0:</span><b id="hdr-p0"></b></div>
 </header>
 
+<nav class="subpage-nav" id="subpage-nav" style="display:none;"></nav>
+
+<div class="sync-banner" id="sync-banner" style="display:none;">
+  <span id="sync-msg"></span>
+  <span class="sync-actions">
+    <button id="sync-copy" class="tool-btn" title="把含本地改动的最新 DATA 复制出来,粘回文件顶部 DATA 块 = 落盘">📤 复制最新 DATA</button>
+    <button id="sync-reset" class="tool-btn" title="丢弃所有本地改动,回到文件状态">↺ 清空本地改动</button>
+  </span>
+</div>
+
 <div class="hero">
   <div class="date">📍 <span id="hero-date"></span></div>
   <div class="progress-wrap">
@@ -252,6 +298,7 @@ const DATA = {
 
 <div class="toolbar">
   <input id="search" type="search" placeholder="🔍 搜索卡片… ( / 聚焦 · Esc 清空 )" autocomplete="off" spellcheck="false">
+  <button id="theme-toggle" class="tool-btn" title="切换深 / 浅主题 (记忆)">🌗 主题</button>
   <button id="copy-today" class="tool-btn" title="把 NOW 列复制成纯文本">📋 复制今天</button>
   <span class="kbd-hint">⌨ <b>/</b> 搜索 · <b>1-9</b> 切 track · <b>a</b> 全部 · <b>d</b> 显隐已完成 · <b>p</b> 打印</span>
 </div>
@@ -343,14 +390,7 @@ const DATA = {
   $("week-col-label").textContent = M.period;
   document.title = `${M.title} — Life Kanban`;
 
-  // 3. Progress (auto = week done 比例; 手动 = DATA.progress.pct)
-  const weekDone = DATA.week.filter(c => c.done).length;
-  const weekTotal = DATA.week.length;
-  const autoPct = weekTotal ? Math.round(weekDone / weekTotal * 100) : 0;
-  const pct = DATA.progress.pct != null ? DATA.progress.pct : autoPct;
-  $("hero-progress-label").textContent = `${DATA.progress.label} (${weekDone}/${weekTotal})`;
-  $("hero-progress-pct").textContent = pct + "%";
-  $("hero-progress-bar").style.width = pct + "%";
+  // 3. Progress — 进度条/计数在 repaint() 里按"有效状态"(含本地叠加层)动态算 (见第 5 节)
   $("hero-progress-detail").textContent = DATA.progress.detail;
 
   // 4. Badge 渲染 (project 用 subject, 其它用 action)
@@ -366,28 +406,209 @@ const DATA = {
   };
   const trackClass = (track) => track ? `track-${esc(track)}` : '';
 
-  // 5. 三列卡片
-  const renderCard = (c, timeField) => `
-    <div class="card ${c.star ? 'star' : ''} ${c.done ? 'done' : ''} ${c.meta ? 'has-meta' : ''} ${trackClass(c.track)}">
-      ${trackBadge(c)}
-      ${c.tag ? `<span class="tag ${esc(String(c.tag).toLowerCase())}">${esc(c.tag)}</span>` : ''}
-      <span class="time">${esc(c[timeField])}</span>
-      <div class="title">${esc(c.title)}</div>
-      ${c.meta ? `<div class="meta">${esc(c.meta)}</div>` : ''}
-    </div>`;
-  $("now-count").textContent = DATA.now.length;
-  $("now-list").innerHTML = DATA.now.map(c => renderCard(c, 'time')).join('');
-  $("week-count").textContent = DATA.week.length;
-  $("week-list").innerHTML = DATA.week.map(c => renderCard(c, 'day')).join('');
-  $("next-count").textContent = DATA.next.length;
-  $("next-list").innerHTML = DATA.next.map(c => renderCard(c, 'when')).join('');
+  // 5. ===== 卡片渲染 + localStorage 叠加层 (浏览器打勾 / 拖拽, 不动文件 DATA) =====
+  // 叠加层只存"改动": done 覆盖 / 列归属覆盖 / 列内排序。文件 DATA 仍是结构真相。
+  const COLS = ['now','week','next'];
+  const FIELD = { now:'time', week:'day', next:'when' };
+  const LIST  = { now:'now-list', week:'week-list', next:'next-list' };
+  const CNT   = { now:'now-count', week:'week-count', next:'next-count' };
+  const STORE = 'lk:' + (M.title || 'board') + ':overlay';
+  let ov = {};
+  try { ov = JSON.parse(localStorage.getItem(STORE)) || {}; } catch { ov = {}; }
+  ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {};
+  const saveOv = () => { try { localStorage.setItem(STORE, JSON.stringify(ov)); } catch {} };
 
-  // 点击非 star 卡片展开 meta
+  // 每张卡稳定 key: 优先 c.id, 否则 track|title (同名重复加 #n)
+  const cards = []; const kc = {};
+  COLS.forEach(col => (DATA[col] || []).forEach(c => {
+    const baseK = c.id || `${c.track || '_'}|${c.title}`;
+    kc[baseK] = (kc[baseK] || 0) + 1;
+    cards.push({ d: c, key: kc[baseK] > 1 ? `${baseK}#${kc[baseK]}` : baseK, baseCol: col, label: (c.time || c.day || c.when || '') });
+  }));
+  const effCol  = (c) => ov.col[c.key] || c.baseCol;
+  const effDone = (c) => (c.key in ov.done) ? ov.done[c.key] : !!c.d.done;
+
+  const bucket = () => {
+    const b = { now: [], week: [], next: [] };
+    cards.forEach(c => b[effCol(c)].push(c));
+    COLS.forEach(col => {
+      const ord = ov.order[col];
+      if (ord && ord.length) b[col].sort((x, y) => {
+        let ix = ord.indexOf(x.key), iy = ord.indexOf(y.key);
+        if (ix < 0) ix = 1e9; if (iy < 0) iy = 1e9;
+        return ix - iy;
+      });
+    });
+    return b;
+  };
+
+  const renderCard = (c) => {
+    const d = c.d, done = effDone(c);
+    return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${trackClass(d.track)}" data-key="${esc(c.key)}" draggable="true">
+      <span class="chk" title="打勾 / 取消">${done?'✓':''}</span>
+      ${trackBadge(d)}
+      ${d.tag?`<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>`:''}
+      <span class="time">${esc(c.label)}</span>
+      <div class="title">${esc(d.title)}</div>
+      ${d.meta?`<div class="meta">${esc(d.meta)}</div>`:''}
+    </div>`;
+  };
+  const renderColumns = () => {
+    const b = bucket();
+    COLS.forEach(col => { $(LIST[col]).innerHTML = b[col].map(renderCard).join(''); $(CNT[col]).textContent = b[col].length; });
+    return b;
+  };
+
+  // 有效统计 (含叠加层)
+  const computeStats = (b) => {
+    const ts = {};
+    cards.forEach(c => {
+      if (!c.d.track) return;
+      ts[c.d.track] = ts[c.d.track] || { total: 0, done: 0 };
+      ts[c.d.track].total++; if (effDone(c)) ts[c.d.track].done++;
+    });
+    return { ts, weekTotal: b.week.length, weekDone: b.week.filter(effDone).length };
+  };
+  const refreshProgress = (s) => {
+    const autoPct = s.weekTotal ? Math.round(s.weekDone / s.weekTotal * 100) : 0;
+    const pct = DATA.progress.pct != null ? DATA.progress.pct : autoPct;
+    $("hero-progress-label").textContent = `${DATA.progress.label} (${s.weekDone}/${s.weekTotal})`;
+    $("hero-progress-pct").textContent = pct + "%";
+    $("hero-progress-bar").style.width = pct + "%";
+  };
+  const progressLabel = (s) => s ? (s.done > 0 ? `${s.done}/${s.total}` : `${s.total}`) : '0';
+  const refreshLegendCounts = (s) => {
+    const totalAll = Object.values(s.ts).reduce((a, x) => a + x.total, 0);
+    const doneAll  = Object.values(s.ts).reduce((a, x) => a + x.done, 0);
+    const allEl = document.querySelector('.legend-chip[data-filter="all"] .lc-count');
+    if (allEl) allEl.textContent = doneAll > 0 ? `${doneAll}/${totalAll}` : `${totalAll}`;
+    DATA.tracks.forEach(t => {
+      const el = document.querySelector(`.legend-chip[data-filter="${t.id}"] .lc-count`);
+      if (el) el.textContent = progressLabel(s.ts[t.id]);
+    });
+    const dcEl = $("done-count");
+    if (dcEl) dcEl.textContent = document.querySelectorAll('.card.done').length + document.querySelectorAll('.track-item.closed').length;
+  };
+
+  // 视图层: track 筛选 + 搜索 (每次 re-render 后重应用)
+  let activeFilter = 'all';
+  const reapplyView = () => {
+    const needle = ($("search").value || '').trim().toLowerCase();
+    document.querySelectorAll('.card, .track-item').forEach(el => {
+      const pass = activeFilter === 'all' || el.classList.contains(`track-${activeFilter}`);
+      el.classList.toggle('filtered-out', !pass);
+      el.classList.toggle('search-hidden', !!needle && !el.textContent.toLowerCase().includes(needle));
+    });
+  };
+
+  // 同步横幅
+  const changedCount = () => {
+    let n = 0;
+    cards.forEach(c => {
+      const dc = (c.key in ov.done) && ov.done[c.key] !== !!c.d.done;
+      const cc = ov.col[c.key] && ov.col[c.key] !== c.baseCol;
+      if (dc || cc) n++;
+    });
+    return n;
+  };
+  const refreshBanner = () => {
+    const n = changedCount();
+    const hasOrder = COLS.some(col => (ov.order[col] || []).length);
+    const banner = $("sync-banner");
+    if (n === 0 && !hasOrder) { banner.style.display = 'none'; return; }
+    banner.style.display = '';
+    $("sync-msg").innerHTML = `📝 有 <b>${n}</b> 处本地改动${hasOrder ? ' (含排序)' : ''} 未写回文件 — 复盘时点「复制最新 DATA」粘回顶部 DATA 块即落盘。`;
+  };
+
+  const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshBanner(); reapplyView(); };
+
+  // —— 交互: 打勾 (委托) ——
   document.addEventListener('click', e => {
-    const card = e.target.closest('.card.has-meta');
-    if (!card || card.classList.contains('star')) return;
-    card.classList.toggle('expanded');
+    const chk = e.target.closest('.chk');
+    if (chk) {
+      e.stopPropagation();
+      const card = chk.closest('.card'); const c = cards.find(x => x.key === card.dataset.key);
+      if (c) { ov.done[c.key] = !effDone(c); saveOv(); repaint(); }
+      return;
+    }
+    const card = e.target.closest('.card.has-meta');   // 点卡片其它处展开 meta
+    if (card && !card.classList.contains('star')) card.classList.toggle('expanded');
   });
+
+  // —— 交互: 拖拽移列 / 排序 ——
+  let dragKey = null, dragFrom = null;
+  const afterEl = (listEl, y) => [...listEl.querySelectorAll('.card:not(.dragging)')].reduce((best, ch) => {
+    const box = ch.getBoundingClientRect(); const off = y - box.top - box.height / 2;
+    return (off < 0 && off > best.off) ? { off, el: ch } : best;
+  }, { off: -Infinity, el: null }).el;
+  document.addEventListener('dragstart', e => {
+    const card = e.target.closest('.card'); if (!card) return;
+    dragKey = card.dataset.key; const c = cards.find(x => x.key === dragKey); dragFrom = c ? effCol(c) : null;
+    card.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  });
+  document.addEventListener('dragend', e => { const card = e.target.closest('.card'); if (card) card.classList.remove('dragging'); });
+  COLS.forEach(col => {
+    const colEl = $(LIST[col]).closest('.col');
+    colEl.addEventListener('dragover', e => { e.preventDefault(); colEl.classList.add('drop-target'); });
+    colEl.addEventListener('dragleave', () => colEl.classList.remove('drop-target'));
+    colEl.addEventListener('drop', e => {
+      e.preventDefault(); colEl.classList.remove('drop-target');
+      if (!dragKey) return;
+      const listEl = $(LIST[col]);
+      const seq = [...listEl.querySelectorAll('.card')].map(el => el.dataset.key).filter(k => k !== dragKey);
+      const ref = afterEl(listEl, e.clientY);
+      const at = ref ? Math.max(0, seq.indexOf(ref.dataset.key)) : seq.length;
+      seq.splice(at, 0, dragKey);
+      ov.order[col] = seq; ov.col[dragKey] = col;
+      if (dragFrom && dragFrom !== col) ov.order[dragFrom] = [...$(LIST[dragFrom]).querySelectorAll('.card')].map(el => el.dataset.key).filter(k => k !== dragKey);
+      saveOv(); dragKey = null; repaint();
+    });
+  });
+
+  // —— 同步横幅按钮 ——
+  $("sync-reset").addEventListener('click', () => {
+    if (!confirm('丢弃所有本地改动, 回到文件 DATA 状态?')) return;
+    ov = { done: {}, col: {}, order: {} }; saveOv(); repaint();
+  });
+  $("sync-copy").addEventListener('click', async () => {
+    const b = bucket();
+    const clean = (c) => {
+      const d = c.d, o = {};
+      o[FIELD[effCol(c)]] = c.label; o.title = d.title;
+      if (d.meta) o.meta = d.meta;
+      if (d.tag) o.tag = d.tag;
+      if (d.star) o.star = true;
+      if (effDone(c)) o.done = true;
+      if (d.track) o.track = d.track;
+      if (d.action) o.action = d.action;
+      if (d.subject) o.subject = d.subject;
+      if (d.id) o.id = d.id;
+      return o;
+    };
+    const out = Object.assign({}, DATA);
+    out.now = b.now.map(clean); out.week = b.week.map(clean); out.next = b.next.map(clean);
+    const text = 'const DATA = ' + JSON.stringify(out, null, 2) + ';';
+    const btn = $("sync-copy");
+    try { await navigator.clipboard.writeText(text); btn.textContent = '✅ 已复制 · 粘回顶部 DATA 块'; btn.classList.add('ok'); }
+    catch { window.prompt('复制以下内容, 替换文件顶部 DATA 块:', text); }
+    setTimeout(() => { btn.textContent = '📤 复制最新 DATA'; btn.classList.remove('ok'); }, 2400);
+  });
+
+  // —— 主题切换 (记忆) ——
+  const THEME = 'lk:theme';
+  let theme = localStorage.getItem(THEME) || 'dark';
+  const applyTheme = () => document.documentElement.classList.toggle('light', theme === 'light');
+  applyTheme();
+  $("theme-toggle").addEventListener('click', () => { theme = theme === 'light' ? 'dark' : 'light'; try { localStorage.setItem(THEME, theme); } catch {} applyTheme(); });
+
+  // —— 多看板子页导航 ——
+  if (DATA.nav && DATA.nav.length) {
+    const nav = $("subpage-nav"); nav.style.display = '';
+    nav.innerHTML = DATA.nav.map(n => {
+      const cur = (n.href && location.pathname.split('/').pop() === n.href) ? ' current' : '';
+      return `<a class="${cur}" href="${esc(n.href)}">${esc(n.label)}</a>`;
+    }).join('');
+  }
 
   // 6. 可选 tracking 表
   if (DATA.tracking && DATA.tracking.length) {
@@ -446,34 +667,19 @@ const DATA = {
   $("not-now").innerHTML = DATA.notNow.map(n => `<span class="chip">${esc(n)}</span>`).join('');
   $("redlines").innerHTML = DATA.redlines.map(r => `<li>${esc(r)}</li>`).join('');
 
-  // 9. 动态生成 legend + track 计数 + 筛选 + done 切换
-  const trackStats = {};
-  [...DATA.now, ...DATA.week, ...DATA.next].forEach(c => {
-    if (!c.track) return;
-    trackStats[c.track] = trackStats[c.track] || { total: 0, done: 0 };
-    trackStats[c.track].total++;
-    if (c.done) trackStats[c.track].done++;
-  });
-  const totalAll = Object.values(trackStats).reduce((a, s) => a + s.total, 0);
-  const doneAll = Object.values(trackStats).reduce((a, s) => a + s.done, 0);
-  const progressLabel = (s) => s ? (s.done > 0 ? `${s.done}/${s.total}` : `${s.total}`) : '0';
-  const doneCount = document.querySelectorAll('.card.done').length + document.querySelectorAll('.track-item.closed').length;
-
-  let legendHtml = `<span class="legend-chip active" data-filter="all">📂 全部 <span class="lc-count">${doneAll > 0 ? `${doneAll}/${totalAll}` : totalAll}</span></span>`;
+  // 9. Legend 骨架 (counts 由 repaint→refreshLegendCounts 填) + 筛选 (activeFilter) + done 切换
+  let legendHtml = `<span class="legend-chip active" data-filter="all">📂 全部 <span class="lc-count"></span></span>`;
   DATA.tracks.forEach(t => {
-    legendHtml += `<span class="legend-chip lc-${esc(t.id)}" data-filter="${esc(t.id)}">${esc(t.emoji || '')} ${esc(t.label)} <span class="lc-count">${progressLabel(trackStats[t.id])}</span></span>`;
+    legendHtml += `<span class="legend-chip lc-${esc(t.id)}" data-filter="${esc(t.id)}">${esc(t.emoji || '')} ${esc(t.label)} <span class="lc-count"></span></span>`;
   });
-  legendHtml += `<span class="legend-chip" id="toggle-done" style="margin-left:auto;cursor:pointer;" title="默认隐藏已完成 · 点这里切换">👁️ <span id="toggle-done-label">显示已完成</span> <span class="lc-count">${doneCount}</span></span>`;
+  legendHtml += `<span class="legend-chip" id="toggle-done" style="margin-left:auto;cursor:pointer;" title="默认隐藏已完成 · 点这里切换">👁️ <span id="toggle-done-label">显示已完成</span> <span class="lc-count" id="done-count"></span></span>`;
   $("legend").innerHTML = legendHtml;
 
   document.querySelectorAll('.legend-chip[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
-      const f = chip.dataset.filter;
+      activeFilter = chip.dataset.filter;
       document.querySelectorAll('.legend-chip[data-filter]').forEach(c => c.classList.toggle('active', c === chip));
-      document.querySelectorAll('.card, .track-item').forEach(el => {
-        if (f === 'all') el.classList.remove('filtered-out');
-        else el.classList.toggle('filtered-out', !el.classList.contains(`track-${f}`));
-      });
+      reapplyView();
     });
   });
 
@@ -486,23 +692,21 @@ const DATA = {
     toggleChip.classList.toggle('active', !hidden);
   });
 
-  // 10. 即时搜索 (独立 .search-hidden, 与 track 筛选叠加, 互不干扰)
-  const searchEl = $("search");
-  const runSearch = (q) => {
-    const needle = q.trim().toLowerCase();
-    document.querySelectorAll('.card, .track-item').forEach(el => {
-      el.classList.toggle('search-hidden', !!needle && !el.textContent.toLowerCase().includes(needle));
-    });
-  };
-  searchEl.addEventListener('input', () => runSearch(searchEl.value));
+  // 首次渲染: 列 + 计数 + 进度 + 横幅 + 视图 (含叠加层)
+  repaint();
 
-  // 11. 复制今天 (NOW 列 → 纯文本, 贴进日记/站会)
+  // 10. 即时搜索 (与 track 筛选叠加, 统一走 reapplyView)
+  const searchEl = $("search");
+  searchEl.addEventListener('input', reapplyView);
+
+  // 11. 复制今天 (NOW 列有效内容 → 纯文本, 贴进日记/站会)
   const copyBtn = $("copy-today");
   copyBtn.addEventListener('click', async () => {
     const head = `🔥 今天 ${M.periodDayName} ${M.today} · ${M.period} Day ${M.periodDay}\n焦点: ${M.focus}\n`;
-    const lines = DATA.now.map(c => {
-      const mark = `${c.done ? '✅' : '⬜'}${c.star ? ' ⭐' : ''}${c.tag ? ' ' + c.tag : ''}`;
-      return `${mark} [${c.time}] ${c.title}`;
+    const lines = bucket().now.map(c => {
+      const d = c.d;
+      const mark = `${effDone(c) ? '✅' : '⬜'}${d.star ? ' ⭐' : ''}${d.tag ? ' ' + d.tag : ''}`;
+      return `${mark} [${c.label}] ${d.title}`;
     });
     const text = head + '\n' + lines.join('\n');
     try {
@@ -520,7 +724,7 @@ const DATA = {
   const filterChips = () => [...document.querySelectorAll('.legend-chip[data-filter]')]; // [0]=全部, [1..]=tracks
   document.addEventListener('keydown', e => {
     const typing = document.activeElement === searchEl;
-    if (e.key === 'Escape') { searchEl.value = ''; runSearch(''); searchEl.blur(); return; }
+    if (e.key === 'Escape') { searchEl.value = ''; reapplyView(); searchEl.blur(); return; }
     if (typing) return;                       // 搜索框内不抢按键 (Esc 除外)
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') { e.preventDefault(); searchEl.focus(); return; }

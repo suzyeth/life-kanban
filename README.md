@@ -5,6 +5,10 @@ A Claude Code skill for creating and maintaining a **single-file HTML personal k
 
 ![life-kanban preview](docs/preview.png)
 
+<sub>Light theme (toggle with 🌗 or persisted per-browser):</sub>
+
+![life-kanban light theme](docs/preview-light.png)
+
 ## What it does
 
 | Mode | Trigger | Result |
@@ -28,6 +32,10 @@ script below it is generic. Features:
 - **Keyboard shortcuts** — `/` search · `1-9` switch track · `a` all · `d` show/hide done · `p` print · `Esc` clear
 - **复制今天** button — copy the NOW column as plain text for a daily note / standup
 - **Print stylesheet** — `Ctrl/⌘+P` exports a clean light-theme PDF (expands all cards, ignores filters)
+- **In-browser check + drag** — tick a card's ☑ or drag it between/within columns, *without editing the file*
+- **localStorage overlay + one-click sync** — browser edits persist locally as an overlay; a banner shows pending changes with **📤 复制最新 DATA** (paste back into the file = commit) and **↺ 清空本地改动**. The file `DATA` block stays the single source of truth.
+- **🌗 Light / dark theme** toggle (persisted per browser)
+- **Multi-board nav** — `DATA.nav` renders a sub-page chip row to link several boards (work / life / …) that share `dashboard.css` + `dashboard-utils.js`
 - NOT-NOW + redlines rails
 - Optional: generic "in-flight tracking" table, markdown mirror, custom modules, sub-pages
 - Dark GitHub theme, zero dependencies, opens by double-click

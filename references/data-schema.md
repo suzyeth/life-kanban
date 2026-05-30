@@ -7,6 +7,7 @@ so plain text in any string field is safe.
 ```js
 const DATA = {
   meta: { ... },
+  nav: [ ... ],              // optional — multi-board sub-page links
   tracks: [ ... ],
   progress: { ... },
   now:  [ card, ... ],
@@ -33,6 +34,16 @@ const DATA = {
 | `periodDay` | number | `1` | Day index within the period (1-based). |
 | `periodDayName` | string | `"Mon"` | Short weekday. |
 | `focus` | string | — | **The one-line headline focus.** Shows in the P0 pill. |
+
+## `nav` (array, optional) — multi-board sub-page links
+
+Renders a chip row under the header linking sibling boards (e.g. a main board + 工作板 + 生活板).
+Hidden when empty. Each board is its own HTML file sharing `dashboard.css` + `dashboard-utils.js`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `label` | string | Chip text, e.g. `"🟦 工作板"`. |
+| `href` | string | Filename of the sibling board, e.g. `"工作板.html"`. The chip auto-marks `.current` when the filename matches the open page. |
 
 ## `tracks` (array) — color categories (data-driven)
 
@@ -76,6 +87,7 @@ One task = one card. The only difference between the three columns is the **time
 | `done` | boolean | — | Strike-through + auto-hidden under 👁️ toggle. Counts toward progress. |
 | `action` | string | — | Verb for the badge when not a project, e.g. `做`/`练`/`投`/`复盘`. Badge = `label·action`. |
 | `subject` | string | — | For project-type cards: emoji+name, e.g. `"🎯 Gacha"`. Badge = `label subject` (overrides action). |
+| `id` | string | — | Optional **stable key** for the browser overlay (check/drag persistence). If omitted, the key is derived as `track\|title` (with `#n` on duplicates). Add an explicit `id` if you plan to rename a card's title but keep its in-browser state. |
 
 Badge rendering: `subject` wins → else `action` → else just the track `label`.
 
@@ -112,6 +124,24 @@ Set `trackingTitle` to rename the section header (default `"📬 在管跟进"`)
 - `redlines` — cross-period hard constraints, always applicable. Rendered with a ⛔ prefix.
 
 ---
+
+## Browser overlay (localStorage) vs the file
+
+The board supports **in-browser editing** (tick a card's ☑, drag cards between/within columns)
+without touching the file. These edits are an **overlay** stored in `localStorage` under
+`lk:<title>:overlay` — they never mutate the `DATA` block. On load the file is the base; the overlay
+is layered on top (done state, column membership, ordering).
+
+- The `DATA` block remains the **single source of truth for structure**. The overlay is ephemeral
+  daily state.
+- A **sync banner** appears whenever the overlay differs from the file. It offers:
+  - **📤 复制最新 DATA** — reconstructs the full `DATA` (file + overlay applied) and copies it as a
+    valid `const DATA = {…};` literal. Paste it over the file's `DATA` block to **commit** the changes.
+  - **↺ 清空本地改动** — discards the overlay, reverting to the file.
+- **Key stability:** the overlay maps to cards by `id` (or derived `track|title`). Renaming a title
+  without an `id` orphans that card's overlay entry. When the skill does a Refresh/Edit, prefer baking
+  in pending overlay changes first (ask the user to hit 复制最新 DATA, or read the banner state).
+- Theme choice (`lk:theme`) is also persisted in `localStorage`, independent of the overlay.
 
 ## Edge cases & gotchas
 

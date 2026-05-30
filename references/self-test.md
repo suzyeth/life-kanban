@@ -53,6 +53,21 @@ Run this in the page console / `preview_eval`. **All checks must pass:**
   document.dispatchEvent(new KeyboardEvent('keydown', {key:'2'}));
   r.keyFilters = document.querySelector('.legend-chip.active').dataset.filter !== 'all';
   document.dispatchEvent(new KeyboardEvent('keydown', {key:'a'}));
+  // overlay: checkbox tick → done + sync banner + localStorage
+  const card0 = document.querySelector('#now-list .card');
+  r.cardsHaveKey = !!card0.dataset.key && card0.getAttribute('draggable') === 'true';
+  card0.querySelector('.chk').click();
+  r.tickMakesDone = [...document.querySelectorAll('.card')].some(c => c.dataset.key === card0.dataset.key && c.classList.contains('done'));
+  r.bannerShows = document.getElementById('sync-banner').style.display !== 'none';
+  r.overlayPersisted = !!Object.keys(localStorage).find(k => k.includes(':overlay'));
+  // theme toggle
+  document.getElementById('theme-toggle').click();
+  r.themeLight = document.documentElement.classList.contains('light');
+  document.getElementById('theme-toggle').click();
+  // reset overlay (stub confirm)
+  const _c = window.confirm; window.confirm = () => true;
+  document.getElementById('sync-reset').click(); window.confirm = _c;
+  r.resetClears = document.getElementById('sync-banner').style.display === 'none';
   return r;
 })()
 ```
@@ -62,7 +77,12 @@ raw template's placeholder cards, swap in a word that appears there.)
 
 **Expected:** `trackStyle` true · `cardBorder` is a real color (not `rgb(0,0,0)`/transparent) · all
 `*Cards`/`timeline*`/`notNow`/`redlines` true · `filterHidesSome` true · `doneHiddenByDefault` true ·
-`doneToggleShows` true · `toolbar` true · `searchHidesSome` true · `escClears` true · `keyFilters` true.
+`doneToggleShows` true · `toolbar` true · `searchHidesSome` true · `escClears` true · `keyFilters` true ·
+`cardsHaveKey` true · `tickMakesDone` true · `bannerShows` true · `overlayPersisted` true · `themeLight` true · `resetClears` true.
+
+(Drag-and-drop isn't covered by this DOM probe — verify it manually, or simulate via
+`card.dispatchEvent(new DragEvent('dragstart',{bubbles:true}))` then a `drop` DragEvent on a column's
+`.col`, and check `ov.col[key]` in `localStorage` + the card moved lists.)
 
 ## 3. Console must be clean
 

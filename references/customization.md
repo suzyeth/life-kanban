@@ -45,6 +45,32 @@ That's an example of a custom module beyond the generic schema. To add one:
 
 Keep custom modules small and single-purpose; if one grows, give it its own sub-page.
 
+## Multi-board (`DATA.nav`)
+
+To run several linked boards (e.g. a main board + 工作板 + 生活板), create one HTML file per board
+(all sharing the same `dashboard.css` + `dashboard-utils.js` in the folder), and give each the same
+`nav` array:
+
+```js
+nav: [
+  { label: "📋 主看板", href: "看板.html" },
+  { label: "🟦 工作板", href: "工作板.html" },
+  { label: "🌸 生活板", href: "生活板.html" },
+],
+```
+
+The chip row renders under the header and auto-highlights the current page. Each board keeps its own
+`DATA` (and its own `localStorage` overlay, keyed by `meta.title` — so use **distinct titles** per
+board or their overlays will collide). When scaffolding multiple boards, copy the template once per
+board and edit each one's `DATA`.
+
+## Theme (light / dark)
+
+Dark is default. The 🌗 toolbar button toggles `<html class="light">` and persists the choice in
+`localStorage` (`lk:theme`). Light-theme variables live in `dashboard.css` under `html.light`; the
+kanban template adds a couple of light overrides for the hero gradient and star-card background. To
+change palettes, edit those CSS variable blocks.
+
 ## Optional: sub-pages
 
 The original linked detail pages (求职进展 / mentor / 健身 / 长线时间轴) via a `.subpage-nav` chip row,
