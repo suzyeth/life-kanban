@@ -3,6 +3,8 @@
 A Claude Code skill for creating and maintaining a **single-file HTML personal kanban board** — a
 "what should I look at / do right now" life + project dashboard.
 
+![life-kanban preview](docs/preview.png)
+
 ## What it does
 
 | Mode | Trigger | Result |
