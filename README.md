@@ -24,6 +24,10 @@ script below it is generic. Features:
 - Auto progress bar (from `week[]` done ratio)
 - Non-linear (log-scale) long-range timeline — near-term magnified
 - Clickable legend filter + show/hide-done toggle
+- **Instant search** box — live-filter cards by text, stacks with the track filter
+- **Keyboard shortcuts** — `/` search · `1-9` switch track · `a` all · `d` show/hide done · `p` print · `Esc` clear
+- **复制今天** button — copy the NOW column as plain text for a daily note / standup
+- **Print stylesheet** — `Ctrl/⌘+P` exports a clean light-theme PDF (expands all cards, ignores filters)
 - NOT-NOW + redlines rails
 - Optional: generic "in-flight tracking" table, markdown mirror, custom modules, sub-pages
 - Dark GitHub theme, zero dependencies, opens by double-click

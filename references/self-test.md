@@ -43,13 +43,26 @@ Run this in the page console / `preview_eval`. **All checks must pass:**
   r.doneHiddenByDefault = getComputedStyle(document.querySelector('.card.done')).display === 'none';
   document.getElementById('toggle-done').click();
   r.doneToggleShows   = getComputedStyle(document.querySelector('.card.done')).display !== 'none';
+  // toolbar / search / shortcuts
+  r.toolbar = !!document.getElementById('search') && !!document.getElementById('copy-today');
+  const s = document.getElementById('search');
+  s.value = '健身'; s.dispatchEvent(new Event('input'));
+  r.searchHidesSome = document.querySelectorAll('.card.search-hidden').length > 0;
+  document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
+  r.escClears = s.value === '' && document.querySelectorAll('.card.search-hidden').length === 0;
+  document.dispatchEvent(new KeyboardEvent('keydown', {key:'2'}));
+  r.keyFilters = document.querySelector('.legend-chip.active').dataset.filter !== 'all';
+  document.dispatchEvent(new KeyboardEvent('keydown', {key:'a'}));
   return r;
 })()
 ```
 
+(For the search probe to hide something, use a needle present in the demo data, e.g. `健身`. With the
+raw template's placeholder cards, swap in a word that appears there.)
+
 **Expected:** `trackStyle` true · `cardBorder` is a real color (not `rgb(0,0,0)`/transparent) · all
 `*Cards`/`timeline*`/`notNow`/`redlines` true · `filterHidesSome` true · `doneHiddenByDefault` true ·
-`doneToggleShows` true.
+`doneToggleShows` true · `toolbar` true · `searchHidesSome` true · `escClears` true · `keyFilters` true.
 
 ## 3. Console must be clean
 

@@ -21,6 +21,11 @@ block is the single source of truth. 3 columns (🔥 NOW·今天 / 📅 本周 /
 data-driven color tracks, auto progress bar, a non-linear (log-scale) long-range timeline,
 and NOT-NOW + redlines rails. Optional markdown mirror for terminal viewing.
 
+Built-in viewing aids (no data-model impact): instant **search** box, **keyboard shortcuts**
+(`/` search · `1-9` track filter · `a` all · `d` show/hide done · `p` print · `Esc` clear),
+a **复制今天** button (NOW column → clipboard as plain text), and a **print stylesheet**
+(`Ctrl/⌘+P` → clean light-theme PDF that expands all cards and ignores active filters).
+
 **Core idea — edit data, never markup.** All board changes are edits to the `DATA = {...}`
 object at the top of the HTML. The render script below it is generic and never needs touching.
 This keeps every operation a small, safe, diff-able JS-object edit.
