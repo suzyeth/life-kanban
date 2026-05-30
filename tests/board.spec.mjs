@@ -100,3 +100,41 @@ test('reset discards the overlay', async ({ page }) => {
   });
   expect(overlay).toBe(0);
 });
+
+test('NOW today-summary counts overdue + due chips render', async ({ page }) => {
+  await expect(page.locator('#now-summary')).toContainText('overdue');
+  await expect(page.locator('#now-list .card.overdue')).toHaveCount(1); // due 2025-12-31
+  await expect(page.locator('#now-list .card .due')).toHaveCount(2);
+});
+
+test('+ Add card writes to the overlay and shows the banner', async ({ page }) => {
+  await page.locator('.add-row[data-col="now"] .add-toggle').click();
+  const inp = page.locator('.add-row[data-col="now"] .add-form input');
+  await inp.fill('Buy groceries');
+  await inp.press('Enter');
+  await expect(page.locator('#now-list .card')).toHaveCount(3);
+  await expect(page.locator('#now-list .card .title', { hasText: 'Buy groceries' })).toHaveCount(1);
+  await expect(page.locator('#sync-banner')).toBeVisible();
+  const added = await page.evaluate(() => {
+    const k = Object.keys(localStorage).find(x => x.includes(':overlay'));
+    return JSON.parse(localStorage.getItem(k)).added.length;
+  });
+  expect(added).toBe(1);
+  // delete it again
+  await page.locator('#now-list .card.added .del').click();
+  await expect(page.locator('#now-list .card')).toHaveCount(2);
+});
+
+test('typing in the add form does not trigger keyboard shortcuts', async ({ page }) => {
+  await page.locator('.add-row[data-col="now"] .add-toggle').click();
+  const inp = page.locator('.add-row[data-col="now"] .add-form input');
+  await inp.fill('abc');
+  await inp.press('a'); // would be the "all" shortcut if hijacked
+  await expect(page.locator('.legend-chip.active')).toHaveAttribute('data-filter', 'all');
+  await expect(inp).toHaveValue('abca');
+});
+
+test('lower sections are collapsed by default', async ({ page }) => {
+  const open = await page.locator('#more-fold').evaluate(el => el.open);
+  expect(open).toBe(false);
+});

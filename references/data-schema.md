@@ -87,6 +87,7 @@ One task = one card. The only difference between the three columns is the **time
 | `done` | boolean | — | Strike-through + auto-hidden under 👁️ toggle. Counts toward progress. |
 | `action` | string | — | Verb for the badge when not a project, e.g. `do`/`learn`/`write`/`review`. Badge = `label·action`. |
 | `subject` | string | — | For project-type cards: emoji+name, e.g. `"🎯 Gacha"`. Badge = `label subject` (overrides action). |
+| `due` | `YYYY-MM-DD` | — | Optional due date. While not done: past → red `overdue` outline + chip; today/≤7d → amber "soon" chip; counted in the NOW today-summary line. |
 | `id` | string | — | Optional **stable key** for the browser overlay (check/drag persistence). If omitted, the key is derived as `track\|title` (with `#n` on duplicates). Add an explicit `id` if you plan to rename a card's title but keep its in-browser state. |
 
 Badge rendering: `subject` wins → else `action` → else just the track `label`.
@@ -127,10 +128,12 @@ Set `trackingTitle` to rename the section header (default `"📬 In-flight"`).
 
 ## Browser overlay (localStorage) vs the file
 
-The board supports **in-browser editing** (tick a card's ☑, drag cards between/within columns)
-without touching the file. These edits are an **overlay** stored in `localStorage` under
-`lk:<title>:overlay` — they never mutate the `DATA` block. On load the file is the base; the overlay
-is layered on top (done state, column membership, ordering).
+The board supports **in-browser editing** (tick a card's ☑, drag cards between/within columns, or
+**+ Add card** inline per column) without touching the file. These edits are an **overlay** stored in
+`localStorage` under `lk:<title>:overlay` — they never mutate the `DATA` block. On load the file is the
+base; the overlay is layered on top: `done` (per-card), `col` (column membership), `order` (per-column
+ordering), and `added` (new cards created in-browser; deletable via the ✕). Added cards get baked into
+the right column array on **📤 Copy latest DATA**.
 
 - The `DATA` block remains the **single source of truth for structure**. The overlay is ephemeral
   daily state.

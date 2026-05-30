@@ -167,7 +167,7 @@ All edits target the `DATA` block. Read the current board first, then make the s
 
 | Operation | What to change |
 |---|---|
-| **Add a card** | Append an object to `now[]` / `week[]` / `next[]`. Required: a time field (`time` for now, `day` for week, `when` for next) + `title` + `track`. Optional: `meta`, `tag` (`P0`/`P1`/`P2`), `star`, `action`, `subject`. |
+| **Add a card** | Append an object to `now[]` / `week[]` / `next[]`. Required: a time field (`time` for now, `day` for week, `when` for next) + `title` + `track`. Optional: `meta`, `tag` (`P0`/`P1`/`P2`), `star`, `action`, `subject`, `due` (`YYYY-MM-DD` → overdue highlight). The user can also add cards in-browser (+ Add card) — those live in the overlay until synced back. |
 | **Complete a card** | Set `done: true` on it (it strikes through + auto-hides under the 👁️ toggle). For dated columns, optionally prefix the time field with ✅. |
 | **Move a card** | Cut the object from one column array, paste into the target. NOW↔WEEK↔NEXT are just three arrays. |
 | **Edit a card** | Change its fields in place. Keep immutability discipline at the *file* level — rewrite the whole object cleanly rather than half-editing. |

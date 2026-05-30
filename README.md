@@ -64,7 +64,9 @@ script below it is generic. Features:
 - **Keyboard shortcuts** — `/` search · `1-9` switch track · `a` all · `d` show/hide done · `p` print · `Esc` clear
 - **Copy today** button — copy the NOW column as plain text for a daily note / standup
 - **Print stylesheet** — `Ctrl/⌘+P` exports a clean light-theme PDF (expands all cards, ignores filters)
-- **In-browser check + drag** — tick a card's ☑ or drag it between/within columns, *without editing the file*
+- **In-browser check + drag + add** — tick a card's ☑, drag it between/within columns, or **+ Add card** inline per column — all *without editing the file*
+- **Due dates** — optional `due` per card → overdue cards get a red outline, a due chip, and a NOW "today" summary line (`4 tasks · 1 ⭐ · 1 P0 · 0 done · 1 overdue`)
+- **First-screen focus** — in-flight / timeline / not-now / redlines collapse into a fold by default, so the 30s glance lands on NOW + this week
 - **localStorage overlay + one-click sync** — browser edits persist locally as an overlay; a banner shows pending changes with **📤 Copy latest DATA** (paste back into the file = commit) and **↺ Reset local changes**. The file `DATA` block stays the single source of truth.
 - **🌗 Light / dark theme** toggle (persisted per browser)
 - **Multi-board nav** — `DATA.nav` renders a sub-page chip row to link several boards (work / life / …) that share `dashboard.css` + `dashboard-utils.js`

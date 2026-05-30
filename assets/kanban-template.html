@@ -167,6 +167,33 @@
   .subpage-nav a:hover { background: var(--bg-card); color: var(--text); border-color: var(--accent); text-decoration: none; }
   .subpage-nav a.current { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 
+  /* NOW today summary line */
+  .col-summary { font-size: 11px; color: var(--muted); margin: -4px 0 10px; }
+  .col-summary b { color: var(--text); }
+  .col-summary .ov { color: var(--red); font-weight: 700; }
+
+  /* Card due chip + overdue/soon */
+  .card .due { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--bg-elev); color: var(--muted); margin-left: 4px; }
+  .card.overdue { outline: 1px solid rgba(248,81,73,0.55); }
+  .card.overdue .due { background: rgba(248,81,73,0.15); color: var(--red); font-weight: 600; }
+  .card.soon .due { background: rgba(210,153,34,0.15); color: var(--yellow); }
+
+  /* + Add card (writes to the localStorage overlay) */
+  .add-row { margin-top: 4px; }
+  .add-toggle { width: 100%; text-align: left; background: transparent; border: 1px dashed var(--border); color: var(--muted); border-radius: 8px; padding: 7px 10px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .add-toggle:hover { border-color: var(--accent); color: var(--text); }
+  .add-form { display: none; gap: 6px; margin-top: 4px; }
+  .add-form.open { display: flex; flex-wrap: wrap; }
+  .add-form input { flex: 1; min-width: 110px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 9px; font-size: 13px; outline: none; }
+  .add-form input:focus { border-color: var(--accent); }
+  .add-form select { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px; font-size: 12px; }
+  .card.added .del { position: absolute; top: 8px; right: 10px; color: var(--muted); font-size: 13px; cursor: pointer; opacity: 0.35; line-height: 1; z-index: 3; }
+  .card.added:hover .del { opacity: 1; }
+
+  /* First-screen focus: lower sections collapsed by default */
+  details.more-fold { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 10px 0 0; margin-bottom: 22px; }
+  details.more-fold > summary { font-size: 13px; }
+
   /* 浅色主题: hero 渐变 + star 卡背景需单独覆盖 (它们是硬编码深色) */
   html.light .hero { background: linear-gradient(135deg, #ffffff 0%, #eef1f4 100%); }
   html.light .card.star { background: linear-gradient(90deg, rgba(188,76,0,0.07) 0%, var(--bg-card) 60%); }
@@ -176,7 +203,8 @@
   @media print {
     :root { --bg:#fff; --bg-elev:#fff; --bg-card:#fff; --text:#111; --muted:#555; --border:#ccc; }
     body { padding: 0; max-width: none; }
-    .toolbar, .legend, footer, details summary, .col::-webkit-scrollbar, .sync-banner, .card .chk { display: none !important; }
+    .toolbar, .legend, footer, details summary, .col::-webkit-scrollbar, .sync-banner, .card .chk, .add-row { display: none !important; }
+    details.more-fold > section, details.more-fold > .rails { display: block !important; }   /* expand the fold for print */
     .card { padding-left: 12px; }
     .hero { background: #f4f4f4 !important; }
     .kanban { grid-template-columns: 1fr 1fr 1fr; }
@@ -233,8 +261,8 @@ const DATA = {
   },
   // 🔥 NOW · Today (one task per card, time = time slot)
   now: [
-    { time: "AM ⭐", title: "The single most important thing today", meta: "Optional detail — click the card to expand.", tag: "P0", star: true, track: "work", action: "do" },
-    { time: "21-22", title: "Secondary task example", meta: "track sets the left border color + badge.", track: "learn", action: "learn" },
+    { time: "AM ⭐", title: "The single most important thing today", meta: "Optional detail — click the card to expand.", tag: "P0", star: true, track: "work", action: "do", due: "2026-01-01" },
+    { time: "21-22", title: "Secondary task example", meta: "track sets the left border color + badge.", track: "learn", action: "learn", due: "2025-12-31" },
   ],
   // 📅 This week (one task per card, day = planned day; done:true strikes through + collapses)
   week: [
@@ -308,42 +336,50 @@ const DATA = {
 <div class="kanban">
   <div class="col now">
     <h2>🔥 NOW · Today <span class="count" id="now-count"></span></h2>
+    <div class="col-summary" id="now-summary"></div>
     <div id="now-list"></div>
+    <div class="add-row" data-col="now"></div>
   </div>
   <div class="col week">
     <h2>📅 <span id="week-col-label"></span> This week <span class="count" id="week-count"></span></h2>
     <div id="week-list"></div>
+    <div class="add-row" data-col="week"></div>
   </div>
   <div class="col later">
     <h2>⏭ NEXT &amp; LATER <span class="count" id="next-count"></span></h2>
     <div id="next-list"></div>
+    <div class="add-row" data-col="next"></div>
   </div>
 </div>
 
-<section class="tracking" id="tracking-section" style="display:none;">
-  <h2 id="tracking-title" style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;"></h2>
-  <div class="track-grid" id="tracking-list"></div>
-</section>
+<details class="more-fold" id="more-fold">
+  <summary>▸ More — in-flight · timeline · not now · redlines</summary>
 
-<section class="timeline">
-  <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">🗓 Timeline</h2>
-  <div class="tl-track"><div class="tl-inner" id="timeline"></div></div>
-  <details style="margin-top: 12px;">
-    <summary style="cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; user-select: none;">▸ Expand event details</summary>
-    <div class="tl-detail" id="timeline-detail"></div>
-  </details>
-</section>
+  <section class="tracking" id="tracking-section" style="display:none;">
+    <h2 id="tracking-title" style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;"></h2>
+    <div class="track-grid" id="tracking-list"></div>
+  </section>
 
-<div class="rails">
-  <div class="rail">
-    <h2>🚫 NOT NOW · skipped</h2>
-    <div class="chips" id="not-now"></div>
+  <section class="timeline">
+    <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">🗓 Timeline</h2>
+    <div class="tl-track"><div class="tl-inner" id="timeline"></div></div>
+    <details style="margin-top: 12px;">
+      <summary style="cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; user-select: none;">▸ Expand event details</summary>
+      <div class="tl-detail" id="timeline-detail"></div>
+    </details>
+  </section>
+
+  <div class="rails">
+    <div class="rail">
+      <h2>🚫 NOT NOW · skipped</h2>
+      <div class="chips" id="not-now"></div>
+    </div>
+    <div class="rail">
+      <h2>⛔ Redlines · always apply</h2>
+      <ul class="redlines" id="redlines"></ul>
+    </div>
   </div>
-  <div class="rail">
-    <h2>⛔ Redlines · always apply</h2>
-    <ul class="redlines" id="redlines"></ul>
-  </div>
-</div>
+</details>
 
 <footer>
   Source ⟶ the <code>DATA</code> block at the top of this file · Rhythm ⟶ 30s on NOW daily · full refresh at each period's review
@@ -415,16 +451,22 @@ const DATA = {
   const STORE = 'lk:' + (M.title || 'board') + ':overlay';
   let ov = {};
   try { ov = JSON.parse(localStorage.getItem(STORE)) || {}; } catch { ov = {}; }
-  ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {};
+  ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || [];
   const saveOv = () => { try { localStorage.setItem(STORE, JSON.stringify(ov)); } catch {} };
 
-  // 每张卡稳定 key: 优先 c.id, 否则 track|title (同名重复加 #n)
-  const cards = []; const kc = {};
-  COLS.forEach(col => (DATA[col] || []).forEach(c => {
-    const baseK = c.id || `${c.track || '_'}|${c.title}`;
-    kc[baseK] = (kc[baseK] || 0) + 1;
-    cards.push({ d: c, key: kc[baseK] > 1 ? `${baseK}#${kc[baseK]}` : baseK, baseCol: col, label: (c.time || c.day || c.when || '') });
-  }));
+  // Stable key per card: c.id, else track|title (#n on dup). Added cards keep their own id-key.
+  let cards = [];
+  const buildCards = () => {
+    cards = []; const kc = {};
+    COLS.forEach(col => (DATA[col] || []).forEach(c => {
+      const baseK = c.id || `${c.track || '_'}|${c.title}`;
+      kc[baseK] = (kc[baseK] || 0) + 1;
+      cards.push({ d: c, key: kc[baseK] > 1 ? `${baseK}#${kc[baseK]}` : baseK, baseCol: col, label: (c.time || c.day || c.when || ''), added: false });
+    }));
+    ov.added.forEach(a => cards.push({ d: a, key: a.id, baseCol: a.col, label: a.label || '+ added', added: true }));
+  };
+  buildCards();
+
   const effCol  = (c) => ov.col[c.key] || c.baseCol;
   const effDone = (c) => (c.key in ov.done) ? ov.done[c.key] : !!c.d.done;
 
@@ -442,13 +484,26 @@ const DATA = {
     return b;
   };
 
+  // due date → chip + class (overdue red / soon amber)
+  const dueInfo = (due) => {
+    if (!due) return null;
+    const days = Math.floor((toLocalDate(due) - todayDate) / dayMs);
+    if (days < 0)   return { cls: 'overdue', label: `${-days}d overdue` };
+    if (days === 0) return { cls: 'soon', label: 'due today' };
+    if (days <= 7)  return { cls: 'soon', label: `in ${days}d` };
+    return { cls: '', label: `due ${due.slice(5)}` };
+  };
+
   const renderCard = (c) => {
     const d = c.d, done = effDone(c);
-    return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${trackClass(d.track)}" data-key="${esc(c.key)}" draggable="true">
+    const du = done ? null : dueInfo(d.due);
+    const dueCls = du ? (du.cls === 'overdue' ? 'overdue' : du.cls === 'soon' ? 'soon' : '') : '';
+    return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${c.added?'added':''} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" draggable="true">
       <span class="chk" title="Toggle done">${done?'✓':''}</span>
+      ${c.added?`<span class="del" title="Delete">✕</span>`:''}
       ${trackBadge(d)}
       ${d.tag?`<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>`:''}
-      <span class="time">${esc(c.label)}</span>
+      <span class="time">${esc(c.label)}</span>${du?`<span class="due">${esc(du.label)}</span>`:''}
       <div class="title">${esc(d.title)}</div>
       ${d.meta?`<div class="meta">${esc(d.meta)}</div>`:''}
     </div>`;
@@ -501,10 +556,22 @@ const DATA = {
     });
   };
 
+  // NOW today-summary line
+  const refreshSummary = (b) => {
+    const now = b.now;
+    const star = now.filter(c => c.d.star).length;
+    const p0 = now.filter(c => String(c.d.tag || '').toUpperCase() === 'P0').length;
+    const done = now.filter(effDone).length;
+    const overdue = now.filter(c => { if (effDone(c)) return false; const di = dueInfo(c.d.due); return di && di.cls === 'overdue'; }).length;
+    $("now-summary").innerHTML = `Today: <b>${now.length}</b> tasks · ${star} ⭐ · ${p0} P0 · ${done} done`
+      + (overdue ? ` · <span class="ov">${overdue} overdue</span>` : '');
+  };
+
   // 同步横幅
   const changedCount = () => {
-    let n = 0;
+    let n = ov.added.length;
     cards.forEach(c => {
+      if (c.added) return;
       const dc = (c.key in ov.done) && ov.done[c.key] !== !!c.d.done;
       const cc = ov.col[c.key] && ov.col[c.key] !== c.baseCol;
       if (dc || cc) n++;
@@ -520,9 +587,9 @@ const DATA = {
     $("sync-msg").innerHTML = `📝 <b>${n}</b> local change(s)${hasOrder ? ' (incl. reorder)' : ''} not yet written to the file — click 📤 Copy latest DATA and paste it over the DATA block to commit.`;
   };
 
-  const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshBanner(); reapplyView(); };
+  const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshSummary(b); refreshBanner(); reapplyView(); };
 
-  // —— 交互: 打勾 (委托) ——
+  // —— Interactions: check / delete-added / add-form toggle (delegated) ——
   document.addEventListener('click', e => {
     const chk = e.target.closest('.chk');
     if (chk) {
@@ -531,7 +598,24 @@ const DATA = {
       if (c) { ov.done[c.key] = !effDone(c); saveOv(); repaint(); }
       return;
     }
-    const card = e.target.closest('.card.has-meta');   // 点卡片其它处展开 meta
+    const del = e.target.closest('.card.added .del');
+    if (del) {
+      e.stopPropagation();
+      const key = del.closest('.card').dataset.key;
+      ov.added = ov.added.filter(a => a.id !== key);
+      delete ov.done[key]; delete ov.col[key];
+      COLS.forEach(col => { if (ov.order[col]) ov.order[col] = ov.order[col].filter(k => k !== key); });
+      saveOv(); buildCards(); repaint();
+      return;
+    }
+    const tg = e.target.closest('.add-toggle');
+    if (tg) {
+      const form = tg.nextElementSibling;
+      const open = form.classList.toggle('open');
+      if (open) form.querySelector('input').focus();
+      return;
+    }
+    const card = e.target.closest('.card.has-meta');   // expand meta on click elsewhere
     if (card && !card.classList.contains('star')) card.classList.toggle('expanded');
   });
 
@@ -568,7 +652,7 @@ const DATA = {
   // —— 同步横幅按钮 ——
   $("sync-reset").addEventListener('click', () => {
     if (!confirm('Discard all local changes and revert to the file DATA?')) return;
-    ov = { done: {}, col: {}, order: {} }; saveOv(); repaint();
+    ov = { done: {}, col: {}, order: {}, added: [] }; saveOv(); buildCards(); repaint();
   });
   $("sync-copy").addEventListener('click', async () => {
     const b = bucket();
@@ -582,7 +666,8 @@ const DATA = {
       if (d.track) o.track = d.track;
       if (d.action) o.action = d.action;
       if (d.subject) o.subject = d.subject;
-      if (d.id) o.id = d.id;
+      if (d.due) o.due = d.due;
+      if (d.id && !c.added) o.id = d.id;
       return o;
     };
     const out = Object.assign({}, DATA);
@@ -609,6 +694,29 @@ const DATA = {
       return `<a class="${cur}" href="${esc(n.href)}">${esc(n.label)}</a>`;
     }).join('');
   }
+
+  // —— + Add card (per column; writes to overlay.added, syncs back like any change) ——
+  (function buildAddControls() {
+    const opts = DATA.tracks.map(t => `<option value="${esc(t.id)}">${esc(t.emoji || '')} ${esc(t.label)}</option>`).join('');
+    document.querySelectorAll('.add-row').forEach(row => {
+      row.innerHTML = `<button class="add-toggle" type="button">+ Add card</button>
+        <div class="add-form"><input type="text" maxlength="120" placeholder="New ${esc(row.dataset.col)} task… (Enter)"><select title="track">${opts}</select></div>`;
+    });
+  })();
+  document.addEventListener('keydown', e => {
+    const inp = e.target.closest && e.target.closest('.add-form input');
+    if (!inp) return;
+    if (e.key === 'Escape') { inp.value = ''; inp.closest('.add-form').classList.remove('open'); return; }
+    if (e.key !== 'Enter') return;
+    const title = inp.value.trim(); if (!title) return;
+    const form = inp.closest('.add-form'), col = form.closest('.add-row').dataset.col;
+    const track = form.querySelector('select').value;
+    const id = 'add-' + Date.now() + '-' + Math.floor(Math.random() * 1e4);
+    const label = col === 'now' ? 'Today' : col === 'week' ? 'this wk' : 'later';
+    ov.added.push({ id, col, title, track, action: 'do', label });
+    saveOv(); buildCards(); repaint();
+    inp.value = ''; inp.focus();   // keep open for rapid entry
+  });
 
   // 6. 可选 tracking 表
   if (DATA.tracking && DATA.tracking.length) {
@@ -723,9 +831,10 @@ const DATA = {
   // 12. 键盘快捷键: / 搜索 · 1-9 切 track · a 全部 · d 显隐 done · p 打印 · Esc 清空
   const filterChips = () => [...document.querySelectorAll('.legend-chip[data-filter]')]; // [0]=全部, [1..]=tracks
   document.addEventListener('keydown', e => {
-    const typing = document.activeElement === searchEl;
-    if (e.key === 'Escape') { searchEl.value = ''; reapplyView(); searchEl.blur(); return; }
-    if (typing) return;                       // 搜索框内不抢按键 (Esc 除外)
+    const ae = document.activeElement;
+    const inField = ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+    if (e.key === 'Escape') { if (ae === searchEl) { searchEl.value = ''; reapplyView(); searchEl.blur(); } return; }
+    if (inField) return;                      // never hijack keys while typing in any field
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') { e.preventDefault(); searchEl.focus(); return; }
     if (e.key === 'a' || e.key === '0') { filterChips()[0].click(); return; }
