@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>__TITLE__ — Life Kanban</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="dashboard.css">
+<style>
+  /* ── 看板页专属布局 (track 颜色由 JS 按 DATA.tracks 动态注入, 见底部 render) ── */
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  h1 small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 12px; }
+  .focus-pill { display: inline-flex; gap: 8px; align-items: center; background: var(--bg-elev); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 13px; color: var(--muted); max-width: 520px; }
+  .focus-pill b { color: var(--accent); }
+
+  /* Today hero + progress */
+  .hero { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .hero .date { font-size: 22px; font-weight: 700; }
+  .hero .date span { color: var(--accent); }
+  .hero .progress-wrap { flex: 1; min-width: 280px; }
+  .hero .progress-wrap .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress { height: 8px; background: var(--bg-card); border-radius: 4px; overflow: hidden; }
+  .progress > div { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); transition: width 0.3s; }
+
+  /* Kanban columns */
+  .kanban { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+  @media (max-width: 1100px) { .kanban { grid-template-columns: 1fr; } }
+  .col { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-height: 280px; max-height: 75vh; overflow-y: auto; }
+  .col::-webkit-scrollbar { width: 6px; }
+  .col::-webkit-scrollbar-track { background: transparent; }
+  .col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .col::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  .col h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .col h2 .count { background: var(--bg-card); color: var(--text); font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .col.now h2 { color: var(--accent); }
+  .col.week h2 { color: var(--blue); }
+  .col.later h2 { color: var(--purple); }
+
+  /* Cards */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; position: relative; transition: background 0.15s; }
+  .card.has-meta:not(.star) { cursor: pointer; }
+  .card.has-meta:not(.star):hover { background: #232830; }
+  .card .cat-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; letter-spacing: 0.5px; margin-right: 5px; vertical-align: middle; text-transform: uppercase; }
+  /* track 左边框 + badge 配色由 JS 动态注入到 #track-styles */
+  .filtered-out { display: none !important; }
+  .card .time { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.3px; }
+  .card .title { font-weight: 600; margin: 2px 0 4px; }
+  .card .meta { font-size: 11px; color: var(--muted); margin-top: 6px; white-space: pre-line; line-height: 1.5; }
+  .card.has-meta:not(.star) .meta { display: none; }
+  .card.has-meta:not(.star).expanded .meta { display: block; }
+  .card.has-meta:not(.star)::after { content: "▾"; position: absolute; top: 9px; right: 10px; color: var(--muted); font-size: 10px; line-height: 1; transition: transform 0.15s; }
+  .card.has-meta:not(.star).expanded::after { transform: rotate(180deg); }
+  .card.star { border-left: 3px solid var(--accent); background: linear-gradient(90deg, rgba(240,136,62,0.06) 0%, var(--bg-card) 60%); }
+  .card.star .title { font-size: 14px; }
+  .card:not(.star):not(.done) .title { color: var(--muted); font-weight: 500; }
+  .card.done { opacity: 0.45; }
+  .card.done .title { text-decoration: line-through; }
+  body.hide-done .card.done { display: none; }
+  body.hide-done .track-item.closed { display: none; }
+  .card .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--bg-elev); color: var(--muted); margin-right: 4px; }
+  .card .tag.p0 { background: rgba(248,81,73,0.15); color: var(--red); }
+  .card .tag.p1 { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .card .tag.p2 { background: rgba(88,166,255,0.15); color: var(--blue); }
+
+  /* Legend / track filter chips (动态生成) */
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; font-size: 11px; align-items: center; }
+  .legend-chip { cursor: pointer; user-select: none; background: var(--bg-elev); border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 14px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+  .legend-chip:hover { background: var(--bg-card); color: var(--text); }
+  .legend-chip.active { background: var(--bg-card); color: var(--text); box-shadow: 0 0 0 1px rgba(240,136,62,0.4); }
+  .legend-chip .lc-count { background: var(--bg); padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; }
+
+  /* Optional generic tracking section (投递在管 / 任何 "已启动待跟进" 列表) */
+  section.tracking { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+  .track-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .track-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; position: relative; }
+  .track-item .ti-title { font-weight: 700; font-size: 15px; }
+  .track-item .ti-sub { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+  .track-item .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+  .track-item .days { font-weight: 700; }
+  .track-item.fresh .days { color: var(--green); }
+  .track-item.warm .days { color: var(--yellow); }
+  .track-item.stale .days { color: var(--red); }
+  .track-item.closed { opacity: 0.45; }
+  .track-item.closed .ti-title { text-decoration: line-through; }
+  .track-item .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--bg-elev); color: var(--muted); }
+
+  /* Timeline (log-scale gantt + 详细列表) */
+  .timeline { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 22px; overflow-x: auto; }
+  .tl-track { position: relative; height: 130px; min-width: 800px; padding: 0 70px; }
+  .tl-inner { position: relative; height: 100%; }
+  .tl-bar { position: absolute; left: 0; right: 0; top: 63px; height: 4px; background: var(--bg-card); border-radius: 2px; }
+  .tl-event { position: absolute; top: 0; width: 0; text-align: center; font-size: 11px; }
+  .tl-event .dot { position: absolute; left: -6px; top: 58px; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); border: 2px solid var(--bg-elev); z-index: 2; }
+  .tl-event.today .dot { background: var(--accent); width: 16px; height: 16px; left: -8px; top: 56px; }
+  .tl-event.deadline .dot { background: var(--red); }
+  .tl-event.visa .dot { background: var(--purple); }
+  .tl-event .lbl { position: absolute; bottom: 76px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: var(--muted); }
+  .tl-event.today .lbl { color: var(--accent); font-weight: 700; }
+  .tl-event .date-lbl { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .tl-event.below .lbl { bottom: auto; top: 80px; }
+  .tl-event.below .date-lbl { top: auto; bottom: 76px; }
+  .tl-tick { position: absolute; top: 67px; height: 26px; width: 0; border-left: 1px dashed var(--border); font-size: 9px; color: var(--muted); padding-left: 3px; line-height: 26px; white-space: nowrap; opacity: 0.45; pointer-events: none; }
+  .tl-scale-hint { position: absolute; top: 2px; right: 6px; font-size: 10px; color: var(--muted); opacity: 0.6; }
+  .tl-detail { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; }
+  .tl-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 10px 8px; border-bottom: 1px solid var(--border); align-items: start; cursor: pointer; transition: background 0.15s; }
+  .tl-row:hover { background: var(--bg-card); }
+  .tl-row:last-child { border-bottom: 0; }
+  .tl-row-date { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); padding-top: 2px; }
+  .tl-row-date .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; margin-top: 3px; }
+  .tl-row.today .tl-row-date .badge { background: var(--accent); color: var(--bg); }
+  .tl-row.deadline .tl-row-date .badge { background: var(--red); color: white; }
+  .tl-row.visa .tl-row-date .badge { background: var(--purple); color: white; }
+  .tl-row.milestone .tl-row-date .badge { background: var(--blue); color: white; }
+  .tl-row-body .tl-row-label { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .tl-row.today .tl-row-body .tl-row-label { color: var(--accent); }
+  .tl-row-body .tl-row-text { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+  /* Bottom rails (NOT NOW + 红线) */
+  .rails { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .rails { grid-template-columns: 1fr; } }
+  .rail { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .rail h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--bg-card); border: 1px solid var(--border); padding: 4px 10px; border-radius: 14px; font-size: 12px; color: var(--muted); }
+  ul.redlines { list-style: none; }
+  ul.redlines li { padding: 4px 0; font-size: 12px; color: var(--muted); border-bottom: 1px dashed var(--border); }
+  ul.redlines li:before { content: "⛔ "; color: var(--red); }
+  ul.redlines li:last-child { border: 0; }
+
+  footer { text-align: center; font-size: 11px; color: var(--muted); padding-top: 18px; }
+  footer code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================= -->
+<!-- DATA — 改这里 = 改看板。这是整页唯一数据源。                    -->
+<!-- 卡片 schema 见 references/data-schema.md                       -->
+<!--   card: { track, action?, subject?, title, meta?, tag?,        -->
+<!--           star?, done?, time|day|when }                        -->
+<!--   tracks[] 定义颜色 + 图例, 想加 track 就往这里加一项即可。      -->
+<!-- ============================================================= -->
+<script>
+const DATA = {
+  meta: {
+    title: "__TITLE__",
+    today: "2026-01-01",          // ⚠️ YYYY-MM-DD · 与真实今天不符会弹红条
+    period: "W1",                 // 周期标签 (周/sprint/月, 随你)
+    periodRange: "2026-01-01 → 01-07",
+    periodDay: 1,
+    periodDayName: "Mon",
+    focus: "本周期 P0 = 在这里写一句最重要的主线焦点",
+  },
+  // ── Track 定义 (互斥归类). 加一项 = 多一种颜色 + 一个图例筛选 chip ──
+  tracks: [
+    { id: "work",    label: "工作", color: "#58a6ff", emoji: "🟦" },
+    { id: "learn",   label: "学习", color: "#3fb950", emoji: "🟩" },
+    { id: "project", label: "项目", color: "#f0883e", emoji: "🟧" },
+    { id: "life",    label: "生活", color: "#ec4899", emoji: "🌸" },
+    { id: "system",  label: "系统", color: "#8b949e", emoji: "⬛" },
+  ],
+  progress: {
+    label: "本周期 P0 进度",
+    pct: null,                    // null = 自动按 week[] done 比例算; 填数字则手动覆盖
+    detail: "一句话现状描述 — 进度条下方显示。",
+  },
+  // 🔥 NOW · 今天 (一任务一卡, time = 时段)
+  now: [
+    { time: "上午 ⭐", title: "今天最重要的一件事", meta: "展开看细节 (可选)。点卡片展开。", tag: "P0", star: true, track: "work", action: "做" },
+    { time: "晚 21-22", title: "次要任务示例", meta: "track 决定左边框颜色 + badge。", track: "learn", action: "练" },
+  ],
+  // 📅 本周 (一任务一卡, day = 计划日; done:true 划线 + 默认折叠)
+  week: [
+    { day: "Mon", title: "本周计划任务 A", meta: "", track: "work", action: "做" },
+    { day: "Wed ✅", title: "已完成任务示例", meta: "done 的卡默认隐藏, 点图例 👁️ 切换显示。", done: true, track: "project", subject: "🎯 示例项目" },
+  ],
+  // ⏭ NEXT & LATER (下周期 + 长线, when = 时间窗口)
+  next: [
+    { when: "下周期", title: "暂不做但记下的事", meta: "", track: "work", action: "做" },
+    { when: "🦘 Filler", title: "有空可做的填充任务", meta: "", track: "project", subject: "🎯 示例项目" },
+  ],
+  // 🗓 长线时间轴 (Gantt, 非线性 log 轴 · type: today|milestone|deadline|visa)
+  timeline: [
+    { date: "2026-01-01", label: "今天", type: "today", detail: "当前位置。" },
+    { date: "2026-02-01", label: "里程碑示例", type: "milestone", detail: "展开看完整描述。" },
+    { date: "2026-04-01", label: "硬 deadline 示例", type: "deadline", detail: "红点 = 不可滑的死线。" },
+  ],
+  // 📬 可选: 通用跟进表 (投递在管 / 申请 / 任何已启动待回应的事). 不用就留 []
+  tracking: [
+    // { title: "对象名", sub: "副标题/角色", track: "work", date: "2026-01-01", status: "进行中", closed: false },
+  ],
+  trackingTitle: "📬 在管跟进",   // tracking section 的标题
+  // 🚫 NOT NOW · 显式不做 (看到名字直接跳过, 防分心)
+  notNow: [
+    "示例: 本周期显式 cut 的事 1",
+    "示例: 本周期显式 cut 的事 2",
+  ],
+  // ⛔ 红线 · 永远适用 (跨周期不变的硬约束)
+  redlines: [
+    "示例: 永远不做的事 / 硬约束 1",
+  ],
+};
+</script>
+
+<header>
+  <div>
+    <h1>📋 <span id="hdr-title"></span> <small id="hdr-date"></small></h1>
+    <div id="hdr-focus" style="color: var(--muted); font-size: 13px; margin-top: 4px;"></div>
+  </div>
+  <div class="focus-pill"><span>P0:</span><b id="hdr-p0"></b></div>
+</header>
+
+<div class="hero">
+  <div class="date">📍 <span id="hero-date"></span></div>
+  <div class="progress-wrap">
+    <div class="label"><span id="hero-progress-label"></span><span id="hero-progress-pct"></span></div>
+    <div class="progress"><div id="hero-progress-bar"></div></div>
+    <div style="font-size: 11px; color: var(--muted); margin-top: 6px;" id="hero-progress-detail"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div class="kanban">
+  <div class="col now">
+    <h2>🔥 NOW · 今天 <span class="count" id="now-count"></span></h2>
+    <div id="now-list"></div>
+  </div>
+  <div class="col week">
+    <h2>📅 <span id="week-col-label"></span> 本周 <span class="count" id="week-count"></span></h2>
+    <div id="week-list"></div>
+  </div>
+  <div class="col later">
+    <h2>⏭ NEXT &amp; LATER <span class="count" id="next-count"></span></h2>
+    <div id="next-list"></div>
+  </div>
+</div>
+
+<section class="tracking" id="tracking-section" style="display:none;">
+  <h2 id="tracking-title" style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;"></h2>
+  <div class="track-grid" id="tracking-list"></div>
+</section>
+
+<section class="timeline">
+  <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">🗓 长线时间轴</h2>
+  <div class="tl-track"><div class="tl-inner" id="timeline"></div></div>
+  <details style="margin-top: 12px;">
+    <summary style="cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; user-select: none;">▸ 展开事件详细描述</summary>
+    <div class="tl-detail" id="timeline-detail"></div>
+  </details>
+</section>
+
+<div class="rails">
+  <div class="rail">
+    <h2>🚫 NOT NOW · 显式不做</h2>
+    <div class="chips" id="not-now"></div>
+  </div>
+  <div class="rail">
+    <h2>⛔ 红线 · 永远适用</h2>
+    <ul class="redlines" id="redlines"></ul>
+  </div>
+</div>
+
+<footer>
+  数据源 ⟶ <code>看板.html</code> 顶部 <code>DATA</code> 块 · 维护节奏 ⟶ 每天 30s 看 NOW · 周期末复盘整页刷新
+</footer>
+
+<script src="dashboard-utils.js"></script>
+<script>
+// ===== 渲染 =====
+(function() {
+  const M = DATA.meta;
+  const dayMs = 86400000;
+  const toLocalDate = (s) => new Date(s + 'T12:00:00'); // 避免 bare date 被当 UTC 午夜 → 时区错算
+  const todayDate = toLocalDate(M.today);
+
+  // 0. 日期 stale 警告
+  showDateWarning(M.today);
+
+  // 1. 动态注入 track 颜色 CSS (边框 + badge 配色)
+  const hexToRgba = (hex, a) => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+  const trackMap = {};
+  let css = '';
+  DATA.tracks.forEach(t => {
+    trackMap[t.id] = t;
+    css += `.card.track-${t.id}{border-left:3px solid ${t.color};}`;
+    css += `.card.track-${t.id} .cat-badge{background:${hexToRgba(t.color,0.18)};color:${t.color};}`;
+    css += `.legend-chip.lc-${t.id}.active{border-color:${t.color};}`;
+    css += `.legend-chip.lc-${t.id} .lc-count{color:${t.color};}`;
+  });
+  const styleEl = document.createElement('style');
+  styleEl.id = 'track-styles';
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  // 2. Header + hero
+  $("hdr-title").textContent = M.title;
+  $("hdr-date").textContent = `· ${M.periodDayName} ${M.today} · ${M.period} Day ${M.periodDay}`;
+  $("hdr-focus").textContent = `${M.period} · ${M.periodRange}`;
+  $("hdr-p0").textContent = M.focus;
+  $("hero-date").textContent = `${M.periodDayName} ${M.today} · ${M.period} Day ${M.periodDay}`;
+  $("week-col-label").textContent = M.period;
+  document.title = `${M.title} — Life Kanban`;
+
+  // 3. Progress (auto = week done 比例; 手动 = DATA.progress.pct)
+  const weekDone = DATA.week.filter(c => c.done).length;
+  const weekTotal = DATA.week.length;
+  const autoPct = weekTotal ? Math.round(weekDone / weekTotal * 100) : 0;
+  const pct = DATA.progress.pct != null ? DATA.progress.pct : autoPct;
+  $("hero-progress-label").textContent = `${DATA.progress.label} (${weekDone}/${weekTotal})`;
+  $("hero-progress-pct").textContent = pct + "%";
+  $("hero-progress-bar").style.width = pct + "%";
+  $("hero-progress-detail").textContent = DATA.progress.detail;
+
+  // 4. Badge 渲染 (project 用 subject, 其它用 action)
+  const trackBadge = (c) => {
+    if (!c.track) return '';
+    const t = trackMap[c.track];
+    const label = t ? t.label : c.track;
+    let inner;
+    if (c.subject)     inner = `${label} ${c.subject}`;
+    else if (c.action) inner = `${label}·${c.action}`;
+    else               inner = label;
+    return `<span class="cat-badge">${esc(inner)}</span>`;
+  };
+  const trackClass = (track) => track ? `track-${esc(track)}` : '';
+
+  // 5. 三列卡片
+  const renderCard = (c, timeField) => `
+    <div class="card ${c.star ? 'star' : ''} ${c.done ? 'done' : ''} ${c.meta ? 'has-meta' : ''} ${trackClass(c.track)}">
+      ${trackBadge(c)}
+      ${c.tag ? `<span class="tag ${esc(String(c.tag).toLowerCase())}">${esc(c.tag)}</span>` : ''}
+      <span class="time">${esc(c[timeField])}</span>
+      <div class="title">${esc(c.title)}</div>
+      ${c.meta ? `<div class="meta">${esc(c.meta)}</div>` : ''}
+    </div>`;
+  $("now-count").textContent = DATA.now.length;
+  $("now-list").innerHTML = DATA.now.map(c => renderCard(c, 'time')).join('');
+  $("week-count").textContent = DATA.week.length;
+  $("week-list").innerHTML = DATA.week.map(c => renderCard(c, 'day')).join('');
+  $("next-count").textContent = DATA.next.length;
+  $("next-list").innerHTML = DATA.next.map(c => renderCard(c, 'when')).join('');
+
+  // 点击非 star 卡片展开 meta
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.card.has-meta');
+    if (!card || card.classList.contains('star')) return;
+    card.classList.toggle('expanded');
+  });
+
+  // 6. 可选 tracking 表
+  if (DATA.tracking && DATA.tracking.length) {
+    $("tracking-section").style.display = '';
+    $("tracking-title").textContent = DATA.trackingTitle || '📬 在管跟进';
+    $("tracking-list").innerHTML = DATA.tracking.map(a => {
+      const days = daysSince(a.date, todayDate);
+      const cls = a.closed ? 'closed' : daysClass(days);
+      const tc = a.track ? `track-${esc(a.track)}` : '';
+      return `<div class="track-item ${cls} ${tc}">
+        <div class="ti-title">${esc(a.title)}</div>
+        <div class="ti-sub">${esc(a.sub || '')}</div>
+        <div class="status-row">
+          <span class="status-badge">${esc(a.status || '')}</span>
+          <span class="days">${a.closed ? '—' : (days == null ? '' : days + 'd')}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 7. Timeline (log 轴 · 近期放大)
+  const tlEvents = DATA.timeline.map(e => ({...e, d: toLocalDate(e.date)})).sort((a, b) => a.d - b.d);
+  const todayMs = todayDate.getTime();
+  const logPos = (d) => Math.log10(Math.max(0, (d.getTime() - todayMs) / dayMs) + 1);
+  const xMax = Math.max(...tlEvents.map(e => logPos(e.d))) || 1;
+  const TICKS = [{days:7,label:'1w'},{days:30,label:'1m'},{days:90,label:'3m'},{days:365,label:'1y'},{days:1825,label:'5y'}];
+  const tickHtml = TICKS.filter(t => Math.log10(t.days + 1) <= xMax)
+    .map(t => `<div class="tl-tick" style="left:${(Math.log10(t.days+1)/xMax)*100}%;">${t.label}</div>`).join('');
+  $("timeline").innerHTML = `<div class="tl-scale-hint">非线性 · 近期放大</div><div class="tl-bar"></div>${tickHtml}` + tlEvents.map((e, i) => {
+    const x = (logPos(e.d) / xMax) * 100;
+    const below = i % 2 === 1;
+    return `<div class="tl-event ${esc(e.type)} ${below ? 'below' : ''}" style="left:${x}%;">
+      <div class="lbl">${esc(e.label)}</div><div class="dot"></div>
+      <div class="date-lbl">${esc(e.date.slice(2))}</div>
+    </div>`;
+  }).join('');
+  $("timeline-detail").innerHTML = tlEvents.map(e => {
+    const days = Math.floor((e.d - todayDate) / dayMs);
+    let cd;
+    if (days === 0) cd = "今天";
+    else if (days < 0) cd = `${-days} 天前`;
+    else if (days < 30) cd = `${days} 天后`;
+    else if (days < 365) cd = `~${Math.round(days/30)} 个月后`;
+    else cd = `~${(days/365).toFixed(1)} 年后`;
+    const badge = ({today:'今',milestone:'里程',deadline:'死线',visa:'签证'})[e.type] || '·';
+    return `<div class="tl-row ${esc(e.type)}">
+      <div class="tl-row-date">${esc(e.date)}<br><span class="badge">${esc(badge)}</span></div>
+      <div class="tl-row-body">
+        <div class="tl-row-label">${esc(e.label)} <span style="color:var(--muted);font-weight:500;">· ${esc(cd)}</span></div>
+        <div class="tl-row-text">${esc(e.detail || '(暂无详细描述)')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 8. NOT NOW + 红线
+  $("not-now").innerHTML = DATA.notNow.map(n => `<span class="chip">${esc(n)}</span>`).join('');
+  $("redlines").innerHTML = DATA.redlines.map(r => `<li>${esc(r)}</li>`).join('');
+
+  // 9. 动态生成 legend + track 计数 + 筛选 + done 切换
+  const trackStats = {};
+  [...DATA.now, ...DATA.week, ...DATA.next].forEach(c => {
+    if (!c.track) return;
+    trackStats[c.track] = trackStats[c.track] || { total: 0, done: 0 };
+    trackStats[c.track].total++;
+    if (c.done) trackStats[c.track].done++;
+  });
+  const totalAll = Object.values(trackStats).reduce((a, s) => a + s.total, 0);
+  const doneAll = Object.values(trackStats).reduce((a, s) => a + s.done, 0);
+  const progressLabel = (s) => s ? (s.done > 0 ? `${s.done}/${s.total}` : `${s.total}`) : '0';
+  const doneCount = document.querySelectorAll('.card.done').length + document.querySelectorAll('.track-item.closed').length;
+
+  let legendHtml = `<span class="legend-chip active" data-filter="all">📂 全部 <span class="lc-count">${doneAll > 0 ? `${doneAll}/${totalAll}` : totalAll}</span></span>`;
+  DATA.tracks.forEach(t => {
+    legendHtml += `<span class="legend-chip lc-${esc(t.id)}" data-filter="${esc(t.id)}">${esc(t.emoji || '')} ${esc(t.label)} <span class="lc-count">${progressLabel(trackStats[t.id])}</span></span>`;
+  });
+  legendHtml += `<span class="legend-chip" id="toggle-done" style="margin-left:auto;cursor:pointer;" title="默认隐藏已完成 · 点这里切换">👁️ <span id="toggle-done-label">显示已完成</span> <span class="lc-count">${doneCount}</span></span>`;
+  $("legend").innerHTML = legendHtml;
+
+  document.querySelectorAll('.legend-chip[data-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const f = chip.dataset.filter;
+      document.querySelectorAll('.legend-chip[data-filter]').forEach(c => c.classList.toggle('active', c === chip));
+      document.querySelectorAll('.card, .track-item').forEach(el => {
+        if (f === 'all') el.classList.remove('filtered-out');
+        else el.classList.toggle('filtered-out', !el.classList.contains(`track-${f}`));
+      });
+    });
+  });
+
+  document.body.classList.add('hide-done');
+  const toggleChip = $("toggle-done");
+  const toggleLabel = $("toggle-done-label");
+  toggleChip.addEventListener('click', () => {
+    const hidden = document.body.classList.toggle('hide-done');
+    toggleLabel.textContent = hidden ? '显示已完成' : '隐藏已完成';
+    toggleChip.classList.toggle('active', !hidden);
+  });
+})();
+</script>
+
+</body>
+</html>

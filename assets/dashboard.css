@@ -1,0 +1,80 @@
+/* Shared dashboard base styles — 通用看板基座 (kanban + 子页共用) */
+/* GitHub-dark palette. 所有页面 <link> 这一个文件保证视觉一致。 */
+
+:root {
+  --bg: #0d1117;
+  --bg-elev: #161b22;
+  --bg-card: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #f0883e;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --blue: #58a6ff;
+  --purple: #bc8cff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+}
+
+body { padding: 20px 28px 60px; max-width: 1600px; margin: 0 auto; }
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Shared back / nav button */
+.back {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.back:hover { color: var(--accent); text-decoration: none; }
+
+/* Shared stats row */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.stat { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.stat .num { font-size: 22px; font-weight: 700; line-height: 1.1; }
+.stat .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Shared section + h2 */
+section { margin-bottom: 26px; }
+section > h2 {
+  font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+section > h2 .count {
+  background: var(--bg-card); color: var(--text);
+  font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+}
+
+/* Shared details/summary */
+details { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+details summary { cursor: pointer; user-select: none; font-weight: 600; color: var(--muted); list-style: none; padding: 4px 0; }
+details summary::before { content: "▸ "; color: var(--muted); }
+details[open] summary::before { content: "▾ "; }
+details[open] { padding-bottom: 16px; }
+details > *:not(summary) { margin-top: 12px; }
+
+/* Shared footer */
+footer { text-align: center; font-size: 11px; color: var(--muted); padding-top: 18px; }
+footer code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; }
+
+/* Date mismatch warning banner (auto-shown if DATA.meta.today != actual today) */
+.date-warning {
+  background: #5a1e1e; border: 1px solid var(--red); color: #ffb3b0;
+  padding: 8px 16px; border-radius: 6px; margin-bottom: 16px;
+  font-size: 13px; text-align: center;
+}
+.date-warning b { color: #ffe0de; }
