@@ -98,7 +98,7 @@ asking. The skill should always produce a working board.
 |---|---|---|
 | Target directory | current working dir; if it looks like a repo root, a `Dashboard/` subfolder | Keeps the board near where the user works; mirrors the proven layout. |
 | HTML filename | `board.html` | Simple, language-neutral; rename freely (e.g. `看板.html`). |
-| Board title (`__TITLE__`) | `"My Board"` | Renders something sensible; trivial to rename later. |
+| Board title (`__TITLE__`) | intake Q1 → else inferred from `focus` → else `"My Board"` | A named board feels owned; infer before falling back. |
 | `tracks` | work🟦 / learn🟩 / project🟧 / life🌸 / system⬛ (template's 5) | Covers most life+work splits; easy to add/remove per `customization.md`. |
 | `period` semantics | weekly (`W<n>`) | The original cadence; switch to sprint/month only if the user says so. |
 | `meta.today` | the real current date | Avoids the stale red banner on first render. |
@@ -116,7 +116,7 @@ copy the assets, then edit only the `DATA` block.
 ### Step 2a: Intake — elicit needs first (only when creating from scratch)
 
 A new board is only useful if it reflects the user's real life, not placeholders. Before scaffolding,
-run a **short intake** with the `AskUserQuestion` tool (one batch, ~4 questions). This is the one place
+run a **short intake** with the `AskUserQuestion` tool (one batch, ~4-5 questions). This is the one place
 the skill *does* ask — but it never blocks: **every answer is optional and falls back to the Defaults
 table.** Skip the intake entirely if the user already described their board in the request (mine their
 message for the same fields instead).
@@ -125,11 +125,16 @@ Ask (adapt wording; offer skip/Other on each):
 
 | # | Question | Fills |
 |---|---|---|
-| 1 | Which areas does this board cover? (work / study / health / side-projects / family / …) | `tracks[]` |
-| 2 | What cadence — weekly, sprint, or monthly? | `meta.period*` |
-| 3 | What's the single most important thing this period? | `meta.focus` + first ⭐ NOW card |
-| 4 | Anything you're explicitly **not** doing right now? / any hard deadline? | `notNow[]` / `timeline[]` |
-| 5 (only if relevant) | One board, or separate boards (e.g. Work + Life)? | single vs `nav[]` multi-board |
+| 1 | What should this board be **called**? | `meta.title` (+ `<title>`) |
+| 2 | Which areas does this board cover? (work / study / health / side-projects / family / …) | `tracks[]` |
+| 3 | What cadence — weekly, sprint, or monthly? | `meta.period*` |
+| 4 | What's the single most important thing this period? | `meta.focus` + first ⭐ NOW card |
+| 5 | Anything you're explicitly **not** doing right now? / any hard deadline? | `notNow[]` / `timeline[]` |
+| 6 (only if relevant) | One board, or separate boards (e.g. Work + Life)? | single vs `nav[]` multi-board |
+
+**Title fallback:** if Q1 is skipped, *infer* a title from the focus rather than defaulting blindly —
+e.g. focus "ship the personal site" → "Personal-site sprint board"; focus "上线个人网站" → "个人网站冲刺板".
+Only fall back to `"My Board"` when there's nothing to infer from.
 
 Then confirm the captured intake in one line and proceed. For anything unanswered, use Defaults and
 **say so** — do not re-ask.
@@ -142,7 +147,8 @@ Then confirm the captured intake in one line and proceed. For anything unanswere
    - `assets/dashboard-utils.js` → `dashboard-utils.js`
    - `assets/kanban-template.html` → `board.html` (or the user's preferred filename)
    - Optional: `assets/kanban-template.md` → `board.md` (terminal mirror; default skip)
-2. **Replace `__TITLE__`** in the HTML (and `.md`) with the board name (default `"My Board"`).
+2. **Replace `__TITLE__`** in the HTML (and `.md`) — appears twice: the `<title>` tag and `meta.title`.
+   Use the board name from intake Q1, else the inferred-from-focus title, else `"My Board"`.
 3. **Set `DATA.meta`** — `today` (real today), `period` / `periodRange` / `periodDay` /
    `periodDayName`, and a one-line `focus` (from intake Q3).
 4. **Define `DATA.tracks`** from intake Q1 (or default to work / learn / project / life / system).
