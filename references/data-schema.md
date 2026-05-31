@@ -19,6 +19,7 @@ const DATA = {
   trackingTitle: "...",      // optional
   notNow: [ "...", ... ],
   redlines: [ "...", ... ],
+  habits: [ habit, ... ],    // optional — 7-day streak grid; habit = {id, name, emoji?, target?, log:[dates]}
   archive: [ entry, ... ],   // optional — history ledger (written by Refresh)
   archiveCap: 12,
   nextFoldAfter: 8,          // optional — NEXT cards beyond this fold behind a "show N more" toggle (default 8)

@@ -50,6 +50,9 @@
     addAction: "do",
     // tracking section default header (overridable via DATA.trackingTitle too)
     trackingTitle: "📬 In-flight",
+    // habits
+    habitsTitle: "🔁 Habits",
+    habitWeek: (n, target) => (target ? `${n}/${target} this wk` : `${n} this wk`),
     // timeline
     tlScaleHint: "Non-linear · near-term zoomed",
     tlCountdown: (days) => {
@@ -214,6 +217,16 @@
     css += `.sync-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(240,136,62,0.12);border:1px solid var(--accent);color:var(--text);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;}`;
     css += `.sync-banner b{color:var(--accent);}.sync-banner .sync-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}`;
     css += `@media (max-width:600px){.card{padding-left:34px;}.card .chk{width:20px;height:20px;line-height:17px;left:8px;}}`;
+    // 🔁 habits streak grid
+    css += `.habit-row{display:flex;align-items:center;gap:10px;padding:5px 0;flex-wrap:wrap;}`;
+    css += `.habit-name{flex:1;min-width:140px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}`;
+    css += `.habit-streak{font-size:12px;color:var(--accent);font-weight:600;}`;
+    css += `.habit-week{font-size:11px;color:var(--muted);}`;
+    css += `.habit-cells{display:flex;gap:4px;}`;
+    css += `.habit-cell{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg-elev);color:var(--muted);font:inherit;font-size:11px;cursor:pointer;transition:all .12s;}`;
+    css += `.habit-cell:hover{border-color:var(--accent);}`;
+    css += `.habit-cell.today{box-shadow:0 0 0 1px var(--accent);}`;
+    css += `.habit-cell.done{background:var(--green);border-color:var(--green);color:var(--bg);}`;
     const styleEl = document.createElement("style");
     styleEl.id = "track-styles";
     styleEl.textContent = css;
@@ -251,8 +264,12 @@
     const STORE = "lk:" + (M.title || M.period || "board") + ":overlay";
     let ov = {};
     try { ov = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { ov = {}; }
-    ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {};
+    ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {}; ov.habits = ov.habits || {};
     const saveOv = () => { try { localStorage.setItem(STORE, JSON.stringify(ov)); } catch (e) {} };
+    // habits: DATA.habits[i].log (canonical dates done) overlaid by ov.habits[id][date]
+    const habitLog = {}; (DATA.habits || []).forEach((h) => (habitLog[h.id] = new Set(h.log || [])));
+    const fmtDate = (d) => d.toISOString().slice(0, 10); // d is noon-anchored → no TZ midnight skew
+    const habitDone = (id, ds) => { const o = ov.habits[id]; return o && ds in o ? !!o[ds] : (habitLog[id] ? habitLog[id].has(ds) : false); };
     const cssEsc = (k) => (window.CSS && CSS.escape) ? CSS.escape(k) : String(k).replace(/["\\]/g, "\\$&");
     // single-step (stacked) undo: snapshot ov BEFORE each mutation; Ctrl/Cmd+Z restores the last state
     const undoStack = [];
@@ -260,8 +277,8 @@
     const undo = () => {
       if (!undoStack.length) return;
       ov = JSON.parse(undoStack.pop());
-      ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {};
-      saveOv(); buildCards(); repaint();
+      ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {}; ov.habits = ov.habits || {};
+      saveOv(); buildCards(); repaint(); renderHabits();
     };
 
     let cards = [];
@@ -464,6 +481,9 @@
         const ec = ov.edit[c.key] && Object.keys(ov.edit[c.key]).length;
         if (dc || cc || ec) n++;
       });
+      Object.keys(ov.habits).forEach((id) => Object.keys(ov.habits[id]).forEach((ds) => {
+        if (!!ov.habits[id][ds] !== (habitLog[id] ? habitLog[id].has(ds) : false)) n++; // habit check-in differs from file
+      }));
       return n;
     };
     const refreshBanner = () => {
@@ -479,6 +499,32 @@
       const b = renderColumns();
       const s = computeStats(b);
       refreshProgress(s); refreshLegendCounts(s); refreshSummary(b); renderGoals(); refreshBanner(); reapplyView();
+    };
+
+    // 🔁 habits — a 7-day streak grid per habit (independent of cards; re-rendered on its own toggle)
+    const renderHabits = () => {
+      const habits = DATA.habits || [];
+      const sec = $("habits-section"), grid = $("habits-grid");
+      if (!sec || !grid) return;
+      if (!habits.length) { sec.style.display = "none"; return; }
+      sec.style.display = "";
+      setText("habits-title", STR.habitsTitle);
+      const todayDs = fmtDate(todayDate);
+      const days = [];
+      for (let i = 6; i >= 0; i--) days.push(new Date(todayDate.getTime() - i * dayMs));
+      const streak = (id) => {
+        let n = 0, start = habitDone(id, todayDs) ? 0 : 1; // today not yet done doesn't break the streak
+        for (let k = start; ; k++) { if (habitDone(id, fmtDate(new Date(todayDate.getTime() - k * dayMs)))) n++; else break; }
+        return n;
+      };
+      const weekDone = (id) => days.filter((d) => habitDone(id, fmtDate(d))).length; // done in the last 7 days
+      grid.innerHTML = habits.map((h) => `
+        <div class="habit-row" data-habit="${esc(h.id)}">
+          <div class="habit-name">${esc(h.emoji || "")} ${esc(h.name)}
+            <span class="habit-streak" title="current streak">🔥${streak(h.id)}</span>
+            <span class="habit-week">${esc(STR.habitWeek(weekDone(h.id), h.target))}</span></div>
+          <div class="habit-cells">${days.map((d) => { const ds = fmtDate(d); return `<button class="habit-cell ${habitDone(h.id, ds) ? "done" : ""} ${ds === todayDs ? "today" : ""}" type="button" data-date="${ds}" title="${ds}" aria-label="${esc(h.name)} ${ds}">${d.getDate()}</button>`; }).join("")}</div>
+        </div>`).join("");
     };
 
     // —— move mode (touch-friendly tap-to-move): tap a card's ⠿, then tap a column ——
@@ -545,6 +591,15 @@
 
     // —— interactions: move / edit / check / delete-added / add-form / fold / expand (delegated) ——
     document.addEventListener("click", (e) => {
+      const cell = e.target.closest(".habit-cell");
+      if (cell) {
+        const id = cell.closest(".habit-row").dataset.habit, ds = cell.dataset.date;
+        ov.habits[id] = ov.habits[id] || {};
+        snapshot();
+        ov.habits[id][ds] = !habitDone(id, ds);
+        saveOv(); renderHabits(); refreshBanner();
+        return;
+      }
       const grabBtn = e.target.closest(".grab");
       if (grabBtn) { e.stopPropagation(); const k = grabBtn.closest(".card").dataset.key; setMoving(movingKey === k ? null : k); return; }
       if (movingKey) {
@@ -676,7 +731,7 @@
     if (syncReset) syncReset.addEventListener("click", () => {
       if (!confirm(STR.confirmReset)) return;
       snapshot();
-      ov = { done: {}, col: {}, order: {}, added: [], edit: {} }; saveOv(); buildCards(); repaint();
+      ov = { done: {}, col: {}, order: {}, added: [], edit: {}, habits: {} }; saveOv(); buildCards(); repaint(); renderHabits();
     });
     const syncCopy = $("sync-copy");
     if (syncCopy) syncCopy.addEventListener("click", async () => {
@@ -701,6 +756,11 @@
       };
       const out = Object.assign({}, DATA);
       out.now = b.now.map(clean); out.week = b.week.map(clean); out.next = b.next.map(clean);
+      if (DATA.habits) out.habits = DATA.habits.map((h) => { // fold overlay check-ins back into each habit's log
+        const log = new Set(h.log || []), o = ov.habits[h.id] || {};
+        Object.keys(o).forEach((ds) => (o[ds] ? log.add(ds) : log.delete(ds)));
+        return Object.assign({}, h, { log: [...log].sort() });
+      });
       const text = "const DATA = " + JSON.stringify(out, null, 2) + ";";
       try { await navigator.clipboard.writeText(text); syncCopy.textContent = STR.copiedSync; syncCopy.classList.add("ok"); }
       catch (e) { window.prompt(STR.pasteOverPrompt, text); }
@@ -882,6 +942,7 @@
 
     // first paint (columns + counts + progress + banner + view, overlay-aware)
     repaint();
+    renderHabits();
 
     // ⚡ attention strip — proactive nudges computed on open
     (function attn() {

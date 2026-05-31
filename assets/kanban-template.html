@@ -335,6 +335,12 @@ const DATA = {
     // { title: "Name", sub: "subtitle / role", track: "work", date: "2026-01-01", status: "in progress", closed: false },
   ],
   trackingTitle: "📬 In-flight",   // tracking section header
+  // 🔁 Habits (optional) — a 7-day streak grid. Tick a day in-browser; `log` = dates done (synced back).
+  //    `target` (optional) = a per-week goal shown as "n/target this wk". Empty [] = section hidden.
+  habits: [
+    { id: "exercise", name: "Exercise", emoji: "💪", target: 4, log: [] },
+    { id: "read", name: "Read 20m", emoji: "📖", log: [] },
+  ],
   // 🚫 NOT NOW · explicitly skipped (see the name, skip it — kills re-deciding)
   notNow: [
     "Example: something explicitly cut this period",
@@ -413,6 +419,11 @@ const DATA = {
     <div class="add-row" data-col="next"></div>
   </div>
 </div>
+
+<section class="habits" id="habits-section" style="display:none; margin-bottom:18px;">
+  <h2 id="habits-title" style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;"></h2>
+  <div class="habits-grid" id="habits-grid"></div>
+</section>
 
 <details class="more-fold" id="more-fold">
   <summary>▸ More — in-flight · timeline · not now · redlines</summary>
