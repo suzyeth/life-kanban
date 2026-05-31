@@ -313,6 +313,16 @@ test('rich edit: ✎ can change track / tag / star, persisted to overlay', async
   expect(edit.star).toBe(false);
 });
 
+test('checkbox renders as a visible bordered box (engine-injected control styles)', async ({ page }) => {
+  // regression guard: .chk styling must come from the engine, not a board's inline <style>
+  const chk = page.locator('#now-list .card .chk').first();
+  const box = await chk.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(14);
+  expect(box.height).toBeGreaterThanOrEqual(14);
+  const border = await chk.evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth));
+  expect(border).toBeGreaterThan(0);
+});
+
 test('undo: Ctrl+Z reverts the last overlay change', async ({ page }) => {
   const card = page.locator('#now-list .card').first();
   await card.locator('.chk').click();

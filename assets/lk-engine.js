@@ -177,6 +177,37 @@
     css += `@media (pointer:coarse){.card .grab,.card .edit{opacity:.5;}.card .chk{width:26px;height:26px;}}`;
     // responsive: stack columns on narrow screens
     css += `@media (max-width:640px){.kanban{display:block !important;}.kanban .col{margin-bottom:14px;}}`;
+    // ===== engine-rendered control styles — injected so EVERY board has them (not just boards copied
+    //       from the template's inline <style>). This is what makes the ☑ checkbox visible + clickable. =====
+    css += `.card{padding-left:30px;}`;
+    css += `.card:hover{box-shadow:0 2px 10px rgba(0,0,0,0.28);}`;
+    css += `.card .chk{position:absolute;left:9px;top:10px;width:16px;height:16px;padding:0;font:inherit;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;font-size:11px;line-height:13px;text-align:center;color:var(--green);background:var(--bg-elev);user-select:none;transition:all .12s;z-index:3;}`;
+    css += `.card .chk:focus-visible,.card .del:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}`;
+    css += `.card .chk:hover{border-color:var(--green);transform:scale(1.12);}`;
+    css += `.card.done .chk{background:var(--green);color:var(--bg);border-color:var(--green);}`;
+    css += `.card[draggable="true"]{cursor:grab;}.card.dragging{opacity:.4;}`;
+    css += `.col.drop-target{outline:2px dashed var(--accent);outline-offset:-4px;}`;
+    css += `.card.added .del{position:absolute;top:8px;right:10px;padding:0;font:inherit;background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;opacity:.35;line-height:1;z-index:3;}`;
+    css += `.card.added:hover .del{opacity:1;}`;
+    css += `.col-summary{font-size:11px;color:var(--muted);margin:-4px 0 10px;}.col-summary b{color:var(--text);}.col-summary .ov{color:var(--red);font-weight:700;}`;
+    css += `.card .due{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--bg-elev);color:var(--muted);margin-left:4px;}`;
+    css += `.card.overdue{outline:1px solid rgba(248,81,73,0.55);}.card.overdue .due{background:rgba(248,81,73,0.15);color:var(--red);font-weight:600;}`;
+    css += `.card.soon .due{background:rgba(210,153,34,0.15);color:var(--yellow);}`;
+    css += `.card .goal-pill{display:inline-block;font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg-elev);color:var(--muted);margin-right:5px;vertical-align:middle;}`;
+    css += `.card .rep{font-size:10px;color:var(--muted);margin-left:4px;}`;
+    css += `.add-row{margin-top:4px;}`;
+    css += `.add-toggle{width:100%;text-align:left;background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;transition:all .15s;}`;
+    css += `.add-toggle:hover{border-color:var(--accent);color:var(--text);}`;
+    css += `.add-form{display:none;gap:6px;margin-top:4px;}.add-form.open{display:flex;flex-wrap:wrap;}`;
+    css += `.add-form input{flex:1;min-width:110px;background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:13px;outline:none;}`;
+    css += `.add-form input:focus{border-color:var(--accent);}`;
+    css += `.add-form select{background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px;font-size:12px;}`;
+    css += `.attn{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}`;
+    css += `.attn .a-chip{font-size:12px;padding:5px 12px;border-radius:14px;background:var(--bg-elev);border:1px solid var(--border);color:var(--muted);}`;
+    css += `.attn .a-chip.due{border-color:var(--red);color:var(--red);}.attn .a-chip.warn{border-color:var(--yellow);color:var(--yellow);}`;
+    css += `.sync-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(240,136,62,0.12);border:1px solid var(--accent);color:var(--text);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;}`;
+    css += `.sync-banner b{color:var(--accent);}.sync-banner .sync-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}`;
+    css += `@media (max-width:600px){.card{padding-left:34px;}.card .chk{width:20px;height:20px;line-height:17px;left:8px;}}`;
     const styleEl = document.createElement("style");
     styleEl.id = "track-styles";
     styleEl.textContent = css;
