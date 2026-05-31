@@ -45,6 +45,7 @@
     // + Add card
     addCard: "+ Add card",
     newTask: (col) => `New ${col} task… (Enter)`,
+    quickAddHint: "Quick-add tokens: #track · P0/P1/P2 · ! (star) · a day word (Mon / 周三 / 6/1). The rest is the title.",
     addLabel: (col) => (col === "now" ? "Today" : col === "week" ? "this wk" : "later"),
     addAction: "do",
     // tracking section default header (overridable via DATA.trackingTitle too)
@@ -726,6 +727,25 @@
       }
     }
 
+    // —— quick-capture parser: "周三 投简历 #求职 P0 !" → {title, label, track, tag, star} ——
+    //   #x → track (matched by id or label) · P0/P1/P2 → tag · ! * ⭐ ★ → star · a date-ish word → label.
+    const QA_DATE = /^(今天|明天|后天|周末|下?周[一二三四五六日天]|mon|tue|wed|thu|fri|sat|sun|\d{1,2}[\/-]\d{1,2})$/i;
+    const parseQuickAdd = (raw, col, fallbackTrack) => {
+      const tracks = DATA.tracks || [];
+      const matchTrack = (s) => { const t = tracks.find((t) => t.id.toLowerCase() === s.toLowerCase() || (t.label && t.label.toLowerCase() === s.toLowerCase())); return t ? t.id : null; };
+      let track = null, tag = null, star = false, label = null;
+      const titleParts = [];
+      raw.split(/\s+/).forEach((tok) => {
+        if (!tok) return;
+        if (tok[0] === "#" && tok.length > 1) { const m = matchTrack(tok.slice(1)); if (m) { track = m; return; } }
+        else if (/^p[0-2]$/i.test(tok)) { tag = tok.toUpperCase(); return; }
+        else if (tok === "!" || tok === "*" || tok === "⭐" || tok === "★") { star = true; return; }
+        else if (!label && QA_DATE.test(tok)) { label = tok; return; }
+        titleParts.push(tok);
+      });
+      return { title: titleParts.join(" ").trim(), track: track || fallbackTrack || "", tag, star, label: label || STR.addLabel(col) };
+    };
+
     // —— + Add card (per column; writes to overlay.added, syncs back like any change) ——
     (function buildAddControls() {
       const rows = document.querySelectorAll(".add-row");
@@ -733,19 +753,23 @@
       const opts = (DATA.tracks || []).map((t) => `<option value="${esc(t.id)}">${esc(t.emoji || "")} ${esc(t.label)}</option>`).join("");
       rows.forEach((row) => {
         row.innerHTML = `<button class="add-toggle" type="button">${esc(STR.addCard)}</button>
-        <div class="add-form"><input type="text" maxlength="120" placeholder="${esc(STR.newTask(row.dataset.col))}"><select title="track">${opts}</select></div>`;
+        <div class="add-form"><input type="text" maxlength="120" placeholder="${esc(STR.newTask(row.dataset.col))}" title="${esc(STR.quickAddHint)}"><select title="track">${opts}</select></div>`;
       });
       document.addEventListener("keydown", (e) => {
         const inp = e.target.closest && e.target.closest(".add-form input");
         if (!inp) return;
         if (e.key === "Escape") { inp.value = ""; inp.closest(".add-form").classList.remove("open"); return; }
         if (e.key !== "Enter") return;
-        const title = inp.value.trim(); if (!title) return;
+        const raw = inp.value.trim(); if (!raw) return;
         const form = inp.closest(".add-form"), col = form.closest(".add-row").dataset.col;
-        const track = form.querySelector("select").value;
-        const id = "add-" + (cards.length + ov.added.length + 1) + "-" + col + "-" + title.slice(0, 8);
+        const p = parseQuickAdd(raw, col, form.querySelector("select").value);
+        if (!p.title) return; // tokens only, no actual title → ignore
+        const id = "add-" + (cards.length + ov.added.length + 1) + "-" + col + "-" + p.title.slice(0, 8);
+        const card = { id, col, title: p.title, track: p.track, action: STR.addAction, label: p.label };
+        if (p.tag) card.tag = p.tag;
+        if (p.star) card.star = true;
         snapshot();
-        ov.added.push({ id, col, title, track, action: STR.addAction, label: STR.addLabel(col) });
+        ov.added.push(card);
         saveOv(); buildCards(); repaint();
         inp.value = ""; inp.focus();
       });
