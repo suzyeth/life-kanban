@@ -179,3 +179,52 @@ test('checkbox is keyboard-operable (focusable button + Enter)', async ({ page }
   await page.keyboard.press('Enter');
   await expect(page.locator(`#now-list .card[data-key="${key}"]`)).toHaveClass(/done/);
 });
+
+test('keyboard move: grab handle + arrows move a card across columns', async ({ page }) => {
+  const nowBefore = await page.locator('#now-list .card').count();
+  const weekBefore = await page.locator('#week-list .card').count();
+  const key = await page.locator('#now-list .card').first().getAttribute('data-key');
+  await page.locator('#now-list .card').first().locator('.grab').focus();
+  await page.keyboard.press('ArrowRight'); // NOW → WEEK
+  await expect(page.locator('#now-list .card')).toHaveCount(nowBefore - 1);
+  await expect(page.locator('#week-list .card')).toHaveCount(weekBefore + 1);
+  await expect(page.locator(`#week-list .card[data-key="${key}"]`)).toHaveCount(1);
+  await expect(page.locator('#sync-banner')).toBeVisible();
+});
+
+test('keyboard move: ↑ ↓ reorder within a column', async ({ page }) => {
+  const firstKey = await page.locator('#week-list .card').first().getAttribute('data-key');
+  await page.locator('#week-list .card').first().locator('.grab').focus();
+  await page.keyboard.press('ArrowDown'); // first WEEK card moves down one slot
+  await expect(page.locator('#week-list .card').nth(1)).toHaveAttribute('data-key', firstKey);
+});
+
+test('cards expose state via aria-label (non-color signal)', async ({ page }) => {
+  const overdueAria = await page.locator('#now-list .card.overdue').first().getAttribute('aria-label');
+  expect((overdueAria || '').toLowerCase()).toContain('overdue');
+  const starAria = await page.locator('#now-list .card.star').first().getAttribute('aria-label');
+  expect((starAria || '').toLowerCase()).toContain('starred');
+});
+
+test('window.LK_I18N localizes engine strings', async ({ page }) => {
+  await page.addInitScript(() => { window.LK_I18N = { all: '__ALLX__', showDone: '__SHOWX__' }; });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#now-list .card').length > 0);
+  await expect(page.locator('.legend-chip[data-filter="all"]')).toContainText('__ALLX__');
+  await expect(page.locator('#toggle-done-label')).toContainText('__SHOWX__');
+});
+
+test('window.LK_PLUGINS run once after first paint with a context', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.LK_PLUGINS = [(ctx) => {
+      const d = document.createElement('div');
+      d.id = 'plugin-probe';
+      d.textContent = (ctx && Array.isArray(ctx.DATA?.now) && typeof ctx.repaint === 'function') ? 'ctx-ok' : 'ctx-bad';
+      document.body.appendChild(d);
+    }];
+  });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#now-list .card').length > 0);
+  await expect(page.locator('#plugin-probe')).toHaveText('ctx-ok');
+  await expect(page.locator('#plugin-probe')).toHaveCount(1); // ran exactly once
+});
