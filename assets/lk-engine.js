@@ -92,6 +92,8 @@
     editCancel: "Cancel",
     editTitlePh: "title",
     editMetaPh: "details (optional)",
+    editNoTag: "— tag",
+    editNoTrack: "— track",
     // timeline type filter
     tlAll: "All",
     // touch move mode
@@ -154,6 +156,10 @@
     // inline card editor
     css += `.card-editor{margin-top:8px;display:flex;flex-direction:column;gap:6px;}`;
     css += `.card-editor input,.card-editor textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px;resize:vertical;}`;
+    css += `.card-editor .ce-fields{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}`;
+    css += `.card-editor .ce-fields select,.card-editor .ce-fields .ce-due{width:auto;flex:0 0 auto;font-size:11px;padding:4px 6px;}`;
+    css += `.card-editor .ce-star{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--muted);cursor:pointer;}`;
+    css += `.card-editor .ce-star input{width:auto;margin:0;}`;
     css += `.card-editor .ce-actions{display:flex;gap:6px;}`;
     css += `.card-editor button{font:inherit;font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;}`;
     css += `.card-editor .ce-save{background:var(--accent);border-color:var(--accent);color:#fff;}`;
@@ -171,6 +177,37 @@
     css += `@media (pointer:coarse){.card .grab,.card .edit{opacity:.5;}.card .chk{width:26px;height:26px;}}`;
     // responsive: stack columns on narrow screens
     css += `@media (max-width:640px){.kanban{display:block !important;}.kanban .col{margin-bottom:14px;}}`;
+    // ===== engine-rendered control styles — injected so EVERY board has them (not just boards copied
+    //       from the template's inline <style>). This is what makes the ☑ checkbox visible + clickable. =====
+    css += `.card{padding-left:30px;}`;
+    css += `.card:hover{box-shadow:0 2px 10px rgba(0,0,0,0.28);}`;
+    css += `.card .chk{position:absolute;left:9px;top:10px;width:16px;height:16px;padding:0;font:inherit;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;font-size:11px;line-height:13px;text-align:center;color:var(--green);background:var(--bg-elev);user-select:none;transition:all .12s;z-index:3;}`;
+    css += `.card .chk:focus-visible,.card .del:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}`;
+    css += `.card .chk:hover{border-color:var(--green);transform:scale(1.12);}`;
+    css += `.card.done .chk{background:var(--green);color:var(--bg);border-color:var(--green);}`;
+    css += `.card[draggable="true"]{cursor:grab;}.card.dragging{opacity:.4;}`;
+    css += `.col.drop-target{outline:2px dashed var(--accent);outline-offset:-4px;}`;
+    css += `.card.added .del{position:absolute;top:8px;right:10px;padding:0;font:inherit;background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;opacity:.35;line-height:1;z-index:3;}`;
+    css += `.card.added:hover .del{opacity:1;}`;
+    css += `.col-summary{font-size:11px;color:var(--muted);margin:-4px 0 10px;}.col-summary b{color:var(--text);}.col-summary .ov{color:var(--red);font-weight:700;}`;
+    css += `.card .due{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--bg-elev);color:var(--muted);margin-left:4px;}`;
+    css += `.card.overdue{outline:1px solid rgba(248,81,73,0.55);}.card.overdue .due{background:rgba(248,81,73,0.15);color:var(--red);font-weight:600;}`;
+    css += `.card.soon .due{background:rgba(210,153,34,0.15);color:var(--yellow);}`;
+    css += `.card .goal-pill{display:inline-block;font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg-elev);color:var(--muted);margin-right:5px;vertical-align:middle;}`;
+    css += `.card .rep{font-size:10px;color:var(--muted);margin-left:4px;}`;
+    css += `.add-row{margin-top:4px;}`;
+    css += `.add-toggle{width:100%;text-align:left;background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;transition:all .15s;}`;
+    css += `.add-toggle:hover{border-color:var(--accent);color:var(--text);}`;
+    css += `.add-form{display:none;gap:6px;margin-top:4px;}.add-form.open{display:flex;flex-wrap:wrap;}`;
+    css += `.add-form input{flex:1;min-width:110px;background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:13px;outline:none;}`;
+    css += `.add-form input:focus{border-color:var(--accent);}`;
+    css += `.add-form select{background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px;font-size:12px;}`;
+    css += `.attn{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}`;
+    css += `.attn .a-chip{font-size:12px;padding:5px 12px;border-radius:14px;background:var(--bg-elev);border:1px solid var(--border);color:var(--muted);}`;
+    css += `.attn .a-chip.due{border-color:var(--red);color:var(--red);}.attn .a-chip.warn{border-color:var(--yellow);color:var(--yellow);}`;
+    css += `.sync-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(240,136,62,0.12);border:1px solid var(--accent);color:var(--text);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;}`;
+    css += `.sync-banner b{color:var(--accent);}.sync-banner .sync-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}`;
+    css += `@media (max-width:600px){.card{padding-left:34px;}.card .chk{width:20px;height:20px;line-height:17px;left:8px;}}`;
     const styleEl = document.createElement("style");
     styleEl.id = "track-styles";
     styleEl.textContent = css;
@@ -211,6 +248,15 @@
     ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {};
     const saveOv = () => { try { localStorage.setItem(STORE, JSON.stringify(ov)); } catch (e) {} };
     const cssEsc = (k) => (window.CSS && CSS.escape) ? CSS.escape(k) : String(k).replace(/["\\]/g, "\\$&");
+    // single-step (stacked) undo: snapshot ov BEFORE each mutation; Ctrl/Cmd+Z restores the last state
+    const undoStack = [];
+    const snapshot = () => { undoStack.push(JSON.stringify(ov)); if (undoStack.length > 50) undoStack.shift(); };
+    const undo = () => {
+      if (!undoStack.length) return;
+      ov = JSON.parse(undoStack.pop());
+      ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {};
+      saveOv(); buildCards(); repaint();
+    };
 
     let cards = [];
     const buildCards = () => {
@@ -226,8 +272,12 @@
 
     const effCol = (c) => ov.col[c.key] || c.baseCol;
     const effDone = (c) => (c.key in ov.done ? ov.done[c.key] : !!c.d.done);
-    const effTitle = (c) => { const e = ov.edit[c.key]; return e && e.title != null ? e.title : c.d.title; };
+    const effTitle = (c) => { const e = ov.edit[c.key]; return e && "title" in e ? e.title : c.d.title; };
     const effMeta = (c) => { const e = ov.edit[c.key]; return e && "meta" in e ? e.meta : (c.d.meta || ""); };
+    const effTag = (c) => { const e = ov.edit[c.key]; return e && "tag" in e ? e.tag : (c.d.tag || ""); };
+    const effTrack = (c) => { const e = ov.edit[c.key]; return e && "track" in e ? e.track : (c.d.track || ""); };
+    const effDue = (c) => { const e = ov.edit[c.key]; return e && "due" in e ? e.due : (c.d.due || ""); };
+    const effStar = (c) => { const e = ov.edit[c.key]; return e && "star" in e ? e.star : !!c.d.star; };
     const seqOf = (cl) => { const l = $(LIST[cl]); return l ? [...l.querySelectorAll(".card")].map((el) => el.dataset.key) : []; };
 
     const bucket = () => {
@@ -255,20 +305,20 @@
 
     const renderCard = (c) => {
       const d = c.d, done = effDone(c);
-      const title = effTitle(c), meta = effMeta(c);
-      const du = done ? null : dueInfo(d.due);
+      const title = effTitle(c), meta = effMeta(c), track = effTrack(c), tag = effTag(c), star = effStar(c), due = effDue(c);
+      const du = done ? null : dueInfo(due);
       const dueCls = du ? (du.cls === "overdue" ? "overdue" : du.cls === "soon" ? "soon" : "") : "";
-      const tl = (trackMap[d.track] || {}).label || d.track || "";
-      const flags = [done ? STR.aDone : null, du && du.cls === "overdue" ? STR.aOverdue : null, d.star ? STR.aStar : null].filter(Boolean).join(", ");
+      const tl = (trackMap[track] || {}).label || track || "";
+      const flags = [done ? STR.aDone : null, du && du.cls === "overdue" ? STR.aOverdue : null, star ? STR.aStar : null].filter(Boolean).join(", ");
       const aria = `${tl ? tl + ": " : ""}${c.label} ${title}${flags ? " — " + flags : ""}`;
-      return `<div class="card ${d.star ? "star" : ""} ${done ? "done" : ""} ${meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
+      return `<div class="card ${star ? "star" : ""} ${done ? "done" : ""} ${meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
       <button class="chk" type="button" title="${esc(STR.chkTitle)}" aria-label="${esc(STR.chkTitle)}">${done ? "✓" : ""}</button>
       <button class="grab" type="button" aria-label="${esc(STR.grabLabel)}" title="${esc(STR.grabLabel)}">⠿</button>
       <button class="edit" type="button" aria-label="${esc(STR.editTitle)}" title="${esc(STR.editTitle)}">✎</button>
       ${c.added ? `<button class="del" type="button" title="${esc(STR.delTitle)}" aria-label="${esc(STR.delTitle)}">✕</button>` : ""}
       ${d.goal && goalMap[d.goal] ? `<span class="goal-pill" title="${esc(goalMap[d.goal].horizon || "")}">🎯 ${esc(goalMap[d.goal].title)}</span>` : ""}
-      ${trackBadge(d)}
-      ${d.tag ? `<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>` : ""}
+      ${trackBadge({ track, subject: d.subject, action: d.action })}
+      ${tag ? `<span class="tag ${esc(String(tag).toLowerCase())}">${esc(tag)}</span>` : ""}
       <span class="time">${esc(c.label)}</span>${d.repeat ? `<span class="rep" title="${esc(STR.repTitle(d.repeat))}">↻</span>` : ""}${du ? `<span class="due">${esc(du.label)}</span>` : ""}
       <div class="title">${esc(title)}</div>
       ${meta ? `<div class="meta">${esc(meta)}</div>` : ""}
@@ -303,9 +353,9 @@
     const computeStats = (b) => {
       const ts = {};
       cards.forEach((c) => {
-        if (!c.d.track) return;
-        ts[c.d.track] = ts[c.d.track] || { total: 0, done: 0 };
-        ts[c.d.track].total++; if (effDone(c)) ts[c.d.track].done++;
+        const tk = effTrack(c); if (!tk) return;
+        ts[tk] = ts[tk] || { total: 0, done: 0 };
+        ts[tk].total++; if (effDone(c)) ts[tk].done++;
       });
       return { ts, weekTotal: b.week.length, weekDone: b.week.filter(effDone).length };
     };
@@ -355,7 +405,7 @@
       if (!goals.length) { strip.style.display = "none"; return; }
       strip.style.display = "";
       const ts = {}; // per-track done ratios for track-derived goals
-      cards.forEach((c) => { if (!c.d.track) return; ts[c.d.track] = ts[c.d.track] || { d: 0, t: 0 }; ts[c.d.track].t++; if (effDone(c)) ts[c.d.track].d++; });
+      cards.forEach((c) => { const tk = effTrack(c); if (!tk) return; ts[tk] = ts[tk] || { d: 0, t: 0 }; ts[tk].t++; if (effDone(c)) ts[tk].d++; });
       strip.innerHTML = goals.map((g) => {
         let pct = g.progress;
         if (pct == null) {
@@ -379,10 +429,10 @@
     const refreshSummary = (b) => {
       const el = $("now-summary"); if (!el) return;
       const now = b.now;
-      const star = now.filter((c) => c.d.star).length;
-      const p0 = now.filter((c) => String(c.d.tag || "").toUpperCase() === "P0").length;
+      const star = now.filter((c) => effStar(c)).length;
+      const p0 = now.filter((c) => String(effTag(c) || "").toUpperCase() === "P0").length;
       const done = now.filter(effDone).length;
-      const overdue = now.filter((c) => { if (effDone(c)) return false; const di = dueInfo(c.d.due); return di && di.cls === "overdue"; }).length;
+      const overdue = now.filter((c) => { if (effDone(c)) return false; const di = dueInfo(effDue(c)); return di && di.cls === "overdue"; }).length;
       el.innerHTML = STR.summary({ n: now.length, star, p0, done }) + (overdue ? ` · <span class="ov">${STR.overdue(overdue)}</span>` : "");
     };
 
@@ -393,8 +443,7 @@
         if (c.added) return;
         const dc = c.key in ov.done && ov.done[c.key] !== !!c.d.done;
         const cc = ov.col[c.key] && ov.col[c.key] !== c.baseCol;
-        const ed = ov.edit[c.key];
-        const ec = ed && ((ed.title != null && ed.title !== c.d.title) || ("meta" in ed && (ed.meta || "") !== (c.d.meta || "")));
+        const ec = ov.edit[c.key] && Object.keys(ov.edit[c.key]).length;
         if (dc || cc || ec) n++;
       });
       return n;
@@ -428,6 +477,7 @@
       const seq = seqOf(col).filter((k) => k !== key);
       if (at == null || at < 0 || at > seq.length) at = seq.length;
       seq.splice(at, 0, key);
+      snapshot();
       ov.order[col] = seq; ov.col[key] = col;
       if (from !== col) ov.order[from] = seqOf(from).filter((k) => k !== key);
       saveOv(); repaint();
@@ -438,10 +488,16 @@
       const key = card.dataset.key;
       const c = cards.find((x) => x.key === key); if (!c) return;
       if (card.querySelector(".card-editor")) return;
+      const curTag = effTag(c), curTrack = effTrack(c), curDue = effDue(c), curStar = effStar(c);
+      const tagOpts = ["", "P0", "P1", "P2"].map((t) => `<option value="${t}"${t === curTag ? " selected" : ""}>${esc(t || STR.editNoTag)}</option>`).join("");
+      const trackOpts = `<option value=""${!curTrack ? " selected" : ""}>${esc(STR.editNoTrack)}</option>`
+        + (DATA.tracks || []).map((t) => `<option value="${esc(t.id)}"${t.id === curTrack ? " selected" : ""}>${esc(t.emoji || "")} ${esc(t.label)}</option>`).join("");
       const ed = document.createElement("div");
       ed.className = "card-editor";
       ed.innerHTML = `<input class="ce-title" type="text" value="${esc(effTitle(c))}" placeholder="${esc(STR.editTitlePh)}">`
         + `<textarea class="ce-meta" rows="3" placeholder="${esc(STR.editMetaPh)}">${esc(effMeta(c))}</textarea>`
+        + `<div class="ce-fields"><select class="ce-tag" title="tag">${tagOpts}</select><select class="ce-track" title="track">${trackOpts}</select>`
+        + `<input class="ce-due" type="date" value="${esc(curDue || "")}" title="due date"><label class="ce-star"><input type="checkbox"${curStar ? " checked" : ""}> ⭐</label></div>`
         + `<div class="ce-actions"><button class="ce-save" type="button">${esc(STR.editSave)}</button><button class="ce-cancel" type="button">${esc(STR.editCancel)}</button></div>`;
       card.appendChild(ed);
       const ti = ed.querySelector(".ce-title"); ti.focus(); ti.select();
@@ -450,10 +506,20 @@
       const key = card.dataset.key; const c = cards.find((x) => x.key === key);
       const edEl = card.querySelector(".card-editor"); if (!c || !edEl) return;
       const newTitle = edEl.querySelector(".ce-title").value.trim();
-      const newMeta = edEl.querySelector(".ce-meta").value;
       if (!newTitle) { edEl.querySelector(".ce-title").focus(); return; }
-      if (newTitle === c.d.title && (newMeta || "") === (c.d.meta || "")) delete ov.edit[key];
-      else ov.edit[key] = { title: newTitle, meta: newMeta };
+      const vals = {
+        title: newTitle,
+        meta: edEl.querySelector(".ce-meta").value,
+        tag: edEl.querySelector(".ce-tag").value,
+        track: edEl.querySelector(".ce-track").value,
+        due: edEl.querySelector(".ce-due").value,
+        star: edEl.querySelector(".ce-star input").checked,
+      };
+      const base = { title: c.d.title, meta: c.d.meta || "", tag: c.d.tag || "", track: c.d.track || "", due: c.d.due || "", star: !!c.d.star };
+      const e = {};
+      Object.keys(vals).forEach((k) => { if (vals[k] !== base[k]) e[k] = vals[k]; }); // store only what differs
+      snapshot();
+      if (Object.keys(e).length) ov.edit[key] = e; else delete ov.edit[key];
       saveOv(); repaint();
     };
 
@@ -478,13 +544,14 @@
       if (chk) {
         e.stopPropagation();
         const card = chk.closest(".card"); const c = cards.find((x) => x.key === card.dataset.key);
-        if (c) { ov.done[c.key] = !effDone(c); saveOv(); repaint(); }
+        if (c) { snapshot(); ov.done[c.key] = !effDone(c); saveOv(); repaint(); }
         return;
       }
       const del = e.target.closest(".card.added .del");
       if (del) {
         e.stopPropagation();
         const key = del.closest(".card").dataset.key;
+        snapshot();
         ov.added = ov.added.filter((a) => a.id !== key);
         delete ov.done[key]; delete ov.col[key]; delete ov.edit[key];
         COLS.forEach((col) => { if (ov.order[col]) ov.order[col] = ov.order[col].filter((k) => k !== key); });
@@ -538,6 +605,7 @@
         const ref = afterEl(listEl, e.clientY);
         const at = ref ? Math.max(0, seq.indexOf(ref.dataset.key)) : seq.length;
         seq.splice(at, 0, dragKey);
+        snapshot();
         ov.order[col] = seq; ov.col[dragKey] = col;
         if (dragFrom && dragFrom !== col) ov.order[dragFrom] = [...$(LIST[dragFrom]).querySelectorAll(".card")].map((el) => el.dataset.key).filter((k) => k !== dragKey);
         saveOv(); dragKey = null; repaint();
@@ -561,6 +629,7 @@
       if (!c) return;
       const col = effCol(c);
       const seqOf = (cl) => [...$(LIST[cl]).querySelectorAll(".card")].map((el) => el.dataset.key);
+      snapshot();
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const ni = COLS.indexOf(col) + (e.key === "ArrowRight" ? 1 : -1);
         if (ni < 0 || ni >= COLS.length) return;
@@ -583,6 +652,7 @@
     const syncReset = $("sync-reset");
     if (syncReset) syncReset.addEventListener("click", () => {
       if (!confirm(STR.confirmReset)) return;
+      snapshot();
       ov = { done: {}, col: {}, order: {}, added: [], edit: {} }; saveOv(); buildCards(); repaint();
     });
     const syncCopy = $("sync-copy");
@@ -592,15 +662,15 @@
         const d = c.d, o = {};
         o[FIELD[effCol(c)]] = c.label; o.title = effTitle(c);
         const m = effMeta(c); if (m) o.meta = m;
-        if (d.tag) o.tag = d.tag;
-        if (d.star) o.star = true;
+        const tg = effTag(c); if (tg) o.tag = tg;
+        if (effStar(c)) o.star = true;
         if (effDone(c)) o.done = true;
-        if (d.track) o.track = d.track;
+        const tk = effTrack(c); if (tk) o.track = tk;
         if (d.action) o.action = d.action;
         if (d.subject) o.subject = d.subject;
         if (d.goal) o.goal = d.goal;
         if (d.repeat) o.repeat = d.repeat;
-        if (d.due) o.due = d.due;
+        const du = effDue(c); if (du) o.due = du;
         if (d.link) o.link = d.link;
         if (d.linkLabel) o.linkLabel = d.linkLabel;
         if (d.id && !c.added) o.id = d.id;
@@ -652,6 +722,7 @@
         const form = inp.closest(".add-form"), col = form.closest(".add-row").dataset.col;
         const track = form.querySelector("select").value;
         const id = "add-" + (cards.length + ov.added.length + 1) + "-" + col + "-" + title.slice(0, 8);
+        snapshot();
         ov.added.push({ id, col, title, track, action: STR.addAction, label: STR.addLabel(col) });
         saveOv(); buildCards(); repaint();
         inp.value = ""; inp.focus();
@@ -810,6 +881,7 @@
       const inField = ae && (ae.tagName === "INPUT" || ae.tagName === "SELECT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
       if (e.key === "Escape") { if (searchEl && ae === searchEl) { searchEl.value = ""; reapplyView(); searchEl.blur(); } return; }
       if (inField) return;
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === "z" || e.key === "Z")) { e.preventDefault(); undo(); return; }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "/") { if (searchEl) { e.preventDefault(); searchEl.focus(); } return; }
       if (e.key === "a" || e.key === "0") { const c = filterChips()[0]; if (c) c.click(); return; }
@@ -822,6 +894,37 @@
     const ctx = { DATA, M, STR, todayDate, toLocalDate, dayMs, repaint, effDone, bucket, esc };
     (window.LK_PLUGINS || []).forEach((fn) => { try { fn(ctx); } catch (e) { console.error("lk-engine: plugin error", e); } });
   }
+
+  // ===== Refresh helpers (PURE, no DOM) — codify the mechanical parts of the weekly review =====
+  // so the snapshot math + repeat regeneration are tested + deterministic, not hand-computed.
+  // Compute an archive-ledger entry from the CLOSING period's board (retro is the human reflection line).
+  function snapshotPeriod(data, retro) {
+    const M = (data && data.meta) || {};
+    const all = [...(data.now || []), ...(data.week || []), ...(data.next || [])].filter((c) => c.track);
+    const by = {};
+    all.forEach((c) => { by[c.track] = by[c.track] || { d: 0, t: 0 }; by[c.track].t++; if (c.done) by[c.track].d++; });
+    const byTrack = {};
+    Object.keys(by).forEach((k) => (byTrack[k] = `${by[k].d}/${by[k].t}`));
+    const entry = {
+      period: M.period || M.week || "",
+      range: M.periodRange || M.weekRange || "",
+      done: all.filter((c) => c.done).length,
+      planned: all.length,
+      byTrack,
+      focus: M.focus || M.globalP0 || "",
+      shipped: all.filter((c) => c.done).map((c) => c.title),
+      slipped: (data.week || []).filter((c) => c.track && !c.done).map((c) => c.title),
+    };
+    if (retro != null) entry.retro = retro;
+    return entry;
+  }
+  // The recurring cards to carry into the NEXT period (cloned, reset to not-done).
+  function regenRepeats(data) {
+    return [...(data.now || []), ...(data.week || []), ...(data.next || [])]
+      .filter((c) => c.repeat)
+      .map((c) => { const n = Object.assign({}, c); delete n.done; return n; });
+  }
+  window.LK = Object.assign(window.LK || {}, { snapshotPeriod, regenRepeats });
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initKanban);
   else initKanban();
