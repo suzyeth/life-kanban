@@ -275,3 +275,50 @@ test('tap-to-move: tap ⠿ then tap a column moves the card (touch path)', async
   await expect(page.locator(`#now-list .card[data-key="${key}"]`)).toHaveCount(0);
   await expect(page.locator('body')).not.toHaveClass(/lk-moving/);
 });
+
+test('LK.snapshotPeriod + regenRepeats compute the refresh transforms', async ({ page }) => {
+  const snap = await page.evaluate(() => window.LK.snapshotPeriod(DATA));
+  // template: 6 track'd cards, 1 done (the "Wed ✅" project card)
+  expect(snap.done).toBe(1);
+  expect(snap.planned).toBe(6);
+  expect(snap.byTrack.project).toBe('1/2');
+  expect(snap.shipped).toContain('Completed task example');
+  expect(snap.slipped).toContain("This week's task A"); // a WEEK card not done
+  const snap2 = await page.evaluate(() => window.LK.snapshotPeriod(DATA, 'felt productive'));
+  expect(snap2.retro).toBe('felt productive');
+  const reps = await page.evaluate(() => window.LK.regenRepeats(DATA));
+  expect(reps.length).toBe(1); // the "21-22" learn card has repeat:"weekly"
+  expect(reps[0].title).toBe('Secondary task example');
+  expect('done' in reps[0]).toBe(false); // reset to not-done
+});
+
+test('rich edit: ✎ can change track / tag / star, persisted to overlay', async ({ page }) => {
+  const card = page.locator('#now-list .card').first(); // AM card: work / P0 / star
+  const key = await card.getAttribute('data-key');
+  await card.locator('.edit').click();
+  await card.locator('.card-editor .ce-track').selectOption('project');
+  await card.locator('.card-editor .ce-tag').selectOption('P1');
+  await card.locator('.card-editor .ce-star input').uncheck();
+  await card.locator('.card-editor .ce-save').click();
+  const moved = page.locator(`#now-list .card[data-key="${key}"]`);
+  await expect(moved).toHaveClass(/track-project/);
+  await expect(moved).not.toHaveClass(/star/);
+  await expect(moved.locator('.tag')).toHaveText('P1');
+  const edit = await page.evaluate((k) => {
+    const s = Object.keys(localStorage).find(x => x.includes(':overlay'));
+    return JSON.parse(localStorage.getItem(s)).edit[k];
+  }, key);
+  expect(edit.track).toBe('project');
+  expect(edit.tag).toBe('P1');
+  expect(edit.star).toBe(false);
+});
+
+test('undo: Ctrl+Z reverts the last overlay change', async ({ page }) => {
+  const card = page.locator('#now-list .card').first();
+  await card.locator('.chk').click();
+  await expect(card).toHaveClass(/done/);
+  await expect(page.locator('#sync-banner')).toBeVisible();
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('#now-list .card').first()).not.toHaveClass(/done/);
+  await expect(page.locator('#sync-banner')).toBeHidden();
+});

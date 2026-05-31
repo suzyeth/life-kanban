@@ -210,6 +210,9 @@ The periodic review that resets the board for a new cycle. Follow `references/ma
    `DATA.archive` (newest first) capturing the period you're closing:
    - `done` / `planned` (counts) and `byTrack` (`{trackId: "done/total"}`) computed from the board
    - `focus` (the period's P0), `shipped` (done titles), `slipped` (WEEK items not done)
+   - **The exact computation is codified + tested** as `window.LK.snapshotPeriod(DATA, retro)` in
+     `lk-engine.js` (returns the full entry minus your hand-written retro) — follow that math so the counts
+     are consistent, or open the board's console and run it to get the entry verbatim.
    - **`retro`** — ask the user **one reflection line**: "what went well / what slipped & why / one change?"
      This is the point of the review; don't skip it.
    - Trim `archive` to `archiveCap` (default 12); spill older entries into `review-log.md` if it exists.
@@ -221,7 +224,8 @@ The periodic review that resets the board for a new cycle. Follow `references/ma
    - WEEK → archive finished, carry over slipped (mark honestly, don't silently drop).
    - NEXT/LATER → promote what's now in-scope into WEEK; let the rest roll forward.
    - **Recurring** — cards with `repeat` regenerate into the new period (reset to not-done) instead of
-     being dropped; goal progress carries via the goal, not the card.
+     being dropped; goal progress carries via the goal, not the card. `window.LK.regenRepeats(DATA)`
+     returns exactly the cards to carry forward (cloned, done-reset).
 5. **Timeline** — advance the `today` marker; promote any deadline now inside 7 days into a card.
 6. **Refresh `notNow[]`** for the new cycle and re-check `redlines[]` still apply.
 7. **Mirror to `.md`** if one exists, so the markdown stays in sync.
