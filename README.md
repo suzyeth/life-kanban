@@ -72,15 +72,17 @@ then double‑click it. Everything works without Claude — the skill is just a 
 - **Recurring tasks** — `repeat` on a card (weekly / Mon,Wed,Fri / monthly) regenerates it each Refresh instead of dropping it
 - **Today summary** line (`4 tasks · 1 ⭐ · 1 P0 · 0 done · 1 overdue`) + auto progress bar
 - **Due dates** → overdue cards get a red outline + chip
-- Non‑linear (log‑scale) long‑range **timeline**, **NOT‑NOW** + **redlines** rails
+- Non‑linear (log‑scale) long‑range **timeline** (filter by event type — deadline / milestone / visa), **NOT‑NOW** + **redlines** rails
+- **Backlog stays calm** — the NEXT column folds past `DATA.nextFoldAfter` (default 8) behind a "▸ show N more" toggle, auto‑expanding while you search/filter
 - **📒 Review log** — each weekly Refresh archives the closing period (completion‑rate trend bar + a one‑line retro + a "neglected track" flag), so the board has a *memory*, not just a snapshot
 - **⚡ Attention strip** — on open, surfaces nudges: "Nd since last refresh", "deadline in 3d", "N overdue in NOW"
 - **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default · responsive on mobile
 
 **Daily use — all in the browser, no file edit**
-- ☑ check off · 🖱️ drag (or ⌨️ **keyboard‑move**: focus a card's ⠿ handle → ← → change column, ↑ ↓ reorder) · ➕ **+ Add card** inline
+- ☑ check off · ✎ **edit a card's title/details inline** · ➕ **+ Add card** inline
+- **move a card** three ways: 🖱️ drag · ⌨️ focus its ⠿ handle → ← → change column, ↑ ↓ reorder · 👆 **tap ⠿ then tap a column** (touch‑friendly)
 - 🔍 instant search · ⌨️ shortcuts (`/` `1‑9` `a` `d` `p` `Esc`) · 📋 Copy today · 🖨️ print to clean PDF · 🌗 theme
-- ♿ **a11y** — every card is a keyboard‑operable group with an `aria-label` carrying its track + state (done / overdue / starred), so the board isn't color‑only
+- ♿ **a11y & mobile** — every card is a keyboard‑operable group with an `aria-label` carrying its track + state (done / overdue / starred); columns stack and tap targets grow on small / touch screens
 
 **Source of truth & sync**
 - The `DATA` block stays canonical; browser edits are a **localStorage overlay**
