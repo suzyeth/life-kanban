@@ -79,10 +79,23 @@
     copyPrompt: "Copy the text below:",
     docTitleSuffix: " — Life Kanban",
     // accessibility
-    grabLabel: "Move card — focus then ← → to change column, ↑ ↓ to reorder",
+    grabLabel: "Move card — focus then ← → to change column, ↑ ↓ to reorder (or tap to move on touch)",
     aDone: "done",
     aOverdue: "overdue",
     aStar: "starred",
+    // NEXT overflow fold
+    nextMore: (n) => `▸ show ${n} more`,
+    nextLess: "▾ show less",
+    // in-browser card edit
+    editTitle: "Edit text",
+    editSave: "Save",
+    editCancel: "Cancel",
+    editTitlePh: "title",
+    editMetaPh: "details (optional)",
+    // timeline type filter
+    tlAll: "All",
+    // touch move mode
+    moveMode: "Move mode — tap a column to drop, Esc to cancel",
   };
 
   function initKanban() {
@@ -134,6 +147,30 @@
         + `background:none;border:0;color:var(--muted);font-size:13px;line-height:1;cursor:grab;border-radius:4px;opacity:0;transition:opacity .12s;}`;
     css += `.card:hover .grab,.card:focus-within .grab{opacity:.55;}`;
     css += `.card .grab:hover,.card .grab:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px;}`;
+    // ✎ edit handle (sits just left of the grab handle)
+    css += `.card .edit{position:absolute;bottom:5px;right:27px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:var(--muted);font-size:12px;line-height:1;cursor:pointer;border-radius:4px;opacity:0;transition:opacity .12s;}`;
+    css += `.card:hover .edit,.card:focus-within .edit{opacity:.55;}`;
+    css += `.card .edit:hover,.card .edit:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px;}`;
+    // inline card editor
+    css += `.card-editor{margin-top:8px;display:flex;flex-direction:column;gap:6px;}`;
+    css += `.card-editor input,.card-editor textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px;resize:vertical;}`;
+    css += `.card-editor .ce-actions{display:flex;gap:6px;}`;
+    css += `.card-editor button{font:inherit;font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;}`;
+    css += `.card-editor .ce-save{background:var(--accent);border-color:var(--accent);color:#fff;}`;
+    // NEXT overflow toggle
+    css += `.next-more{display:block;width:100%;margin-top:6px;padding:6px;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;}`;
+    css += `.next-more:hover{color:var(--text);border-color:var(--accent);}`;
+    // timeline type-filter chips
+    css += `.tl-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}`;
+    css += `.tl-chip{font:inherit;font-size:11px;padding:2px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);color:var(--muted);cursor:pointer;}`;
+    css += `.tl-chip.active{color:var(--text);border-color:var(--accent);background:var(--bg-elev);}`;
+    // tap-to-move highlight
+    css += `body.lk-moving .col{outline:2px dashed var(--accent);outline-offset:-4px;cursor:pointer;}`;
+    css += `.card.lk-move-src{outline:2px solid var(--accent);}`;
+    // touch: keep grab/edit visible + bigger checkbox where there's no hover
+    css += `@media (pointer:coarse){.card .grab,.card .edit{opacity:.5;}.card .chk{width:26px;height:26px;}}`;
+    // responsive: stack columns on narrow screens
+    css += `@media (max-width:640px){.kanban{display:block !important;}.kanban .col{margin-bottom:14px;}}`;
     const styleEl = document.createElement("style");
     styleEl.id = "track-styles";
     styleEl.textContent = css;
@@ -171,8 +208,9 @@
     const STORE = "lk:" + (M.title || M.period || "board") + ":overlay";
     let ov = {};
     try { ov = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { ov = {}; }
-    ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || [];
+    ov.done = ov.done || {}; ov.col = ov.col || {}; ov.order = ov.order || {}; ov.added = ov.added || []; ov.edit = ov.edit || {};
     const saveOv = () => { try { localStorage.setItem(STORE, JSON.stringify(ov)); } catch (e) {} };
+    const cssEsc = (k) => (window.CSS && CSS.escape) ? CSS.escape(k) : String(k).replace(/["\\]/g, "\\$&");
 
     let cards = [];
     const buildCards = () => {
@@ -188,6 +226,9 @@
 
     const effCol = (c) => ov.col[c.key] || c.baseCol;
     const effDone = (c) => (c.key in ov.done ? ov.done[c.key] : !!c.d.done);
+    const effTitle = (c) => { const e = ov.edit[c.key]; return e && e.title != null ? e.title : c.d.title; };
+    const effMeta = (c) => { const e = ov.edit[c.key]; return e && "meta" in e ? e.meta : (c.d.meta || ""); };
+    const seqOf = (cl) => { const l = $(LIST[cl]); return l ? [...l.querySelectorAll(".card")].map((el) => el.dataset.key) : []; };
 
     const bucket = () => {
       const b = { now: [], week: [], next: [] };
@@ -214,27 +255,47 @@
 
     const renderCard = (c) => {
       const d = c.d, done = effDone(c);
+      const title = effTitle(c), meta = effMeta(c);
       const du = done ? null : dueInfo(d.due);
       const dueCls = du ? (du.cls === "overdue" ? "overdue" : du.cls === "soon" ? "soon" : "") : "";
       const tl = (trackMap[d.track] || {}).label || d.track || "";
       const flags = [done ? STR.aDone : null, du && du.cls === "overdue" ? STR.aOverdue : null, d.star ? STR.aStar : null].filter(Boolean).join(", ");
-      const aria = `${tl ? tl + ": " : ""}${c.label} ${d.title}${flags ? " — " + flags : ""}`;
-      return `<div class="card ${d.star ? "star" : ""} ${done ? "done" : ""} ${d.meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
+      const aria = `${tl ? tl + ": " : ""}${c.label} ${title}${flags ? " — " + flags : ""}`;
+      return `<div class="card ${d.star ? "star" : ""} ${done ? "done" : ""} ${meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
       <button class="chk" type="button" title="${esc(STR.chkTitle)}" aria-label="${esc(STR.chkTitle)}">${done ? "✓" : ""}</button>
       <button class="grab" type="button" aria-label="${esc(STR.grabLabel)}" title="${esc(STR.grabLabel)}">⠿</button>
+      <button class="edit" type="button" aria-label="${esc(STR.editTitle)}" title="${esc(STR.editTitle)}">✎</button>
       ${c.added ? `<button class="del" type="button" title="${esc(STR.delTitle)}" aria-label="${esc(STR.delTitle)}">✕</button>` : ""}
       ${d.goal && goalMap[d.goal] ? `<span class="goal-pill" title="${esc(goalMap[d.goal].horizon || "")}">🎯 ${esc(goalMap[d.goal].title)}</span>` : ""}
       ${trackBadge(d)}
       ${d.tag ? `<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>` : ""}
       <span class="time">${esc(c.label)}</span>${d.repeat ? `<span class="rep" title="${esc(STR.repTitle(d.repeat))}">↻</span>` : ""}${du ? `<span class="due">${esc(du.label)}</span>` : ""}
-      <div class="title">${esc(d.title)}</div>
-      ${d.meta ? `<div class="meta">${esc(d.meta)}</div>` : ""}
+      <div class="title">${esc(title)}</div>
+      ${meta ? `<div class="meta">${esc(meta)}</div>` : ""}
       ${d.link ? `<a class="card-link" href="${esc(d.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 ${esc(d.linkLabel || "link")}</a>` : ""}
     </div>`;
     };
+    let nextExpanded = false;
     const renderColumns = () => {
       const b = bucket();
-      COLS.forEach((col) => { $(LIST[col]).innerHTML = b[col].map(renderCard).join(""); $(CNT[col]).textContent = b[col].length; });
+      COLS.forEach((col) => {
+        const arr = b[col];
+        $(CNT[col]).textContent = arr.length;
+        if (col === "next") {
+          const foldAfter = DATA.nextFoldAfter != null ? DATA.nextFoldAfter : 8;
+          const needle = (($("search") || {}).value || "").trim();
+          const forceOpen = !!needle || activeFilter !== "all" || nextExpanded;
+          if (!forceOpen && arr.length > foldAfter) {
+            $(LIST[col]).innerHTML = arr.slice(0, foldAfter).map(renderCard).join("")
+              + `<button class="next-more" type="button">${esc(STR.nextMore(arr.length - foldAfter))}</button>`;
+            return;
+          }
+          $(LIST[col]).innerHTML = arr.map(renderCard).join("")
+            + (nextExpanded && arr.length > foldAfter ? `<button class="next-more" type="button" data-collapse="1">${esc(STR.nextLess)}</button>` : "");
+          return;
+        }
+        $(LIST[col]).innerHTML = arr.map(renderCard).join("");
+      });
       return b;
     };
 
@@ -332,7 +393,9 @@
         if (c.added) return;
         const dc = c.key in ov.done && ov.done[c.key] !== !!c.d.done;
         const cc = ov.col[c.key] && ov.col[c.key] !== c.baseCol;
-        if (dc || cc) n++;
+        const ed = ov.edit[c.key];
+        const ec = ed && ((ed.title != null && ed.title !== c.d.title) || ("meta" in ed && (ed.meta || "") !== (c.d.meta || "")));
+        if (dc || cc || ec) n++;
       });
       return n;
     };
@@ -351,8 +414,66 @@
       refreshProgress(s); refreshLegendCounts(s); refreshSummary(b); renderGoals(); refreshBanner(); reapplyView();
     };
 
-    // —— interactions: check / delete-added / add-form toggle / expand (delegated) ——
+    // —— move mode (touch-friendly tap-to-move): tap a card's ⠿, then tap a column ——
+    let movingKey = null;
+    const setMoving = (key) => {
+      movingKey = key || null;
+      document.body.classList.toggle("lk-moving", !!movingKey);
+      document.querySelectorAll(".card.lk-move-src").forEach((el) => el.classList.remove("lk-move-src"));
+      if (movingKey) { const el = document.querySelector(`.card[data-key="${cssEsc(movingKey)}"]`); if (el) el.classList.add("lk-move-src"); }
+    };
+    const moveTo = (key, col, at) => {
+      const c = cards.find((x) => x.key === key); if (!c) return;
+      const from = effCol(c);
+      const seq = seqOf(col).filter((k) => k !== key);
+      if (at == null || at < 0 || at > seq.length) at = seq.length;
+      seq.splice(at, 0, key);
+      ov.order[col] = seq; ov.col[key] = col;
+      if (from !== col) ov.order[from] = seqOf(from).filter((k) => k !== key);
+      saveOv(); repaint();
+    };
+
+    // —— in-browser edit: tap ✎ → inline title + meta editor, saved to the overlay ——
+    const enterEdit = (card) => {
+      const key = card.dataset.key;
+      const c = cards.find((x) => x.key === key); if (!c) return;
+      if (card.querySelector(".card-editor")) return;
+      const ed = document.createElement("div");
+      ed.className = "card-editor";
+      ed.innerHTML = `<input class="ce-title" type="text" value="${esc(effTitle(c))}" placeholder="${esc(STR.editTitlePh)}">`
+        + `<textarea class="ce-meta" rows="3" placeholder="${esc(STR.editMetaPh)}">${esc(effMeta(c))}</textarea>`
+        + `<div class="ce-actions"><button class="ce-save" type="button">${esc(STR.editSave)}</button><button class="ce-cancel" type="button">${esc(STR.editCancel)}</button></div>`;
+      card.appendChild(ed);
+      const ti = ed.querySelector(".ce-title"); ti.focus(); ti.select();
+    };
+    const saveEdit = (card) => {
+      const key = card.dataset.key; const c = cards.find((x) => x.key === key);
+      const edEl = card.querySelector(".card-editor"); if (!c || !edEl) return;
+      const newTitle = edEl.querySelector(".ce-title").value.trim();
+      const newMeta = edEl.querySelector(".ce-meta").value;
+      if (!newTitle) { edEl.querySelector(".ce-title").focus(); return; }
+      if (newTitle === c.d.title && (newMeta || "") === (c.d.meta || "")) delete ov.edit[key];
+      else ov.edit[key] = { title: newTitle, meta: newMeta };
+      saveOv(); repaint();
+    };
+
+    // —— interactions: move / edit / check / delete-added / add-form / fold / expand (delegated) ——
     document.addEventListener("click", (e) => {
+      const grabBtn = e.target.closest(".grab");
+      if (grabBtn) { e.stopPropagation(); const k = grabBtn.closest(".card").dataset.key; setMoving(movingKey === k ? null : k); return; }
+      if (movingKey) {
+        const colEl = e.target.closest(".col");
+        const col = colEl && COLS.find((cc) => $(LIST[cc]) && $(LIST[cc]).closest(".col") === colEl);
+        if (col) { const k = movingKey; setMoving(null); moveTo(k, col, null); return; }
+        setMoving(null); // tap elsewhere cancels move mode
+      }
+      const editBtn = e.target.closest(".edit");
+      if (editBtn) { e.stopPropagation(); enterEdit(editBtn.closest(".card")); return; }
+      if (e.target.closest(".ce-save")) { e.stopPropagation(); saveEdit(e.target.closest(".card")); return; }
+      if (e.target.closest(".ce-cancel")) { e.stopPropagation(); repaint(); return; }
+      if (e.target.closest(".card-editor")) { e.stopPropagation(); return; } // clicks inside the editor don't toggle the card
+      const moreBtn = e.target.closest(".next-more");
+      if (moreBtn) { nextExpanded = !moreBtn.dataset.collapse; repaint(); return; }
       const chk = e.target.closest(".chk");
       if (chk) {
         e.stopPropagation();
@@ -365,7 +486,7 @@
         e.stopPropagation();
         const key = del.closest(".card").dataset.key;
         ov.added = ov.added.filter((a) => a.id !== key);
-        delete ov.done[key]; delete ov.col[key];
+        delete ov.done[key]; delete ov.col[key]; delete ov.edit[key];
         COLS.forEach((col) => { if (ov.order[col]) ov.order[col] = ov.order[col].filter((k) => k !== key); });
         saveOv(); buildCards(); repaint();
         return;
@@ -379,6 +500,17 @@
       }
       const card = e.target.closest(".card.has-meta");
       if (card && !card.classList.contains("star")) card.classList.toggle("expanded");
+    });
+
+    // —— editor + move-mode keyboard: Esc cancels, Enter in the title field saves ——
+    document.addEventListener("keydown", (e) => {
+      const edEl = e.target.closest && e.target.closest(".card-editor");
+      if (edEl) {
+        if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); repaint(); }
+        else if (e.key === "Enter" && e.target.classList && e.target.classList.contains("ce-title")) { e.preventDefault(); saveEdit(edEl.closest(".card")); }
+        return;
+      }
+      if (e.key === "Escape" && movingKey) { e.stopPropagation(); setMoving(null); }
     });
 
     // —— interactions: drag to move between / reorder within columns ——
@@ -451,15 +583,15 @@
     const syncReset = $("sync-reset");
     if (syncReset) syncReset.addEventListener("click", () => {
       if (!confirm(STR.confirmReset)) return;
-      ov = { done: {}, col: {}, order: {}, added: [] }; saveOv(); buildCards(); repaint();
+      ov = { done: {}, col: {}, order: {}, added: [], edit: {} }; saveOv(); buildCards(); repaint();
     });
     const syncCopy = $("sync-copy");
     if (syncCopy) syncCopy.addEventListener("click", async () => {
       const b = bucket();
       const clean = (c) => {
         const d = c.d, o = {};
-        o[FIELD[effCol(c)]] = c.label; o.title = d.title;
-        if (d.meta) o.meta = d.meta;
+        o[FIELD[effCol(c)]] = c.label; o.title = effTitle(c);
+        const m = effMeta(c); if (m) o.meta = m;
         if (d.tag) o.tag = d.tag;
         if (d.star) o.star = true;
         if (effDone(c)) o.done = true;
@@ -542,24 +674,40 @@
       }).join("");
     }
 
-    // 6. timeline (log axis · near-term zoomed)
+    // 6. timeline (log axis · near-term zoomed) + optional type filter chips
     if (DATA.timeline && DATA.timeline.length && $("timeline")) {
       const tlEvents = DATA.timeline.map((e) => ({ ...e, d: toLocalDate(e.date) })).sort((a, b) => a.d - b.d);
       const todayMs = todayDate.getTime();
-      const logPos = (d) => Math.log10(Math.max(0, (d.getTime() - todayMs) / dayMs) + 1);
-      const xMax = Math.max(...tlEvents.map((e) => logPos(e.d))) || 1;
-      const TICKS = [{ days: 7, label: "1w" }, { days: 30, label: "1m" }, { days: 90, label: "3m" }, { days: 365, label: "1y" }, { days: 1825, label: "5y" }];
-      const tickHtml = TICKS.filter((t) => Math.log10(t.days + 1) <= xMax).map((t) => `<div class="tl-tick" style="left:${(Math.log10(t.days + 1) / xMax) * 100}%;">${t.label}</div>`).join("");
-      $("timeline").innerHTML = `<div class="tl-scale-hint">${esc(STR.tlScaleHint)}</div><div class="tl-bar"></div>${tickHtml}` + tlEvents.map((e, i) => {
-        const x = (logPos(e.d) / xMax) * 100;
-        const below = i % 2 === 1;
-        return `<div class="tl-event ${esc(e.type)} ${below ? "below" : ""}" style="left:${x}%;"><div class="lbl">${esc(e.label)}</div><div class="dot"></div><div class="date-lbl">${esc(e.date.slice(2))}</div></div>`;
-      }).join("");
-      if ($("timeline-detail")) $("timeline-detail").innerHTML = tlEvents.map((e) => {
-        const days = Math.floor((e.d - todayDate) / dayMs);
-        const badge = STR.tlBadge[e.type] || "·";
-        return `<div class="tl-row ${esc(e.type)}"><div class="tl-row-date">${esc(e.date)}<br><span class="badge">${esc(badge)}</span></div><div class="tl-row-body"><div class="tl-row-label">${esc(e.label)} <span style="color:var(--muted);font-weight:500;">· ${esc(STR.tlCountdown(days))}</span></div><div class="tl-row-text">${esc(e.detail || STR.tlNoDetail)}</div></div></div>`;
-      }).join("");
+      const types = [...new Set(tlEvents.map((e) => e.type))];
+      let tlFilter = "all";
+      const track = $("timeline").closest(".tl-track");
+      let chipsEl = null;
+      if (track && types.length > 1) {
+        chipsEl = document.createElement("div");
+        chipsEl.className = "tl-filter";
+        track.parentNode.insertBefore(chipsEl, track);
+        chipsEl.addEventListener("click", (e) => { const b = e.target.closest(".tl-chip"); if (!b) return; tlFilter = b.dataset.tl; renderTL(); });
+      }
+      const renderTL = () => {
+        const evs = tlFilter === "all" ? tlEvents : tlEvents.filter((e) => e.type === tlFilter);
+        const logPos = (d) => Math.log10(Math.max(0, (d.getTime() - todayMs) / dayMs) + 1);
+        const xMax = Math.max(...evs.map((e) => logPos(e.d)), 1);
+        const TICKS = [{ days: 7, label: "1w" }, { days: 30, label: "1m" }, { days: 90, label: "3m" }, { days: 365, label: "1y" }, { days: 1825, label: "5y" }];
+        const tickHtml = TICKS.filter((t) => Math.log10(t.days + 1) <= xMax).map((t) => `<div class="tl-tick" style="left:${(Math.log10(t.days + 1) / xMax) * 100}%;">${t.label}</div>`).join("");
+        $("timeline").innerHTML = `<div class="tl-scale-hint">${esc(STR.tlScaleHint)}</div><div class="tl-bar"></div>${tickHtml}` + evs.map((e, i) => {
+          const x = (logPos(e.d) / xMax) * 100;
+          const below = i % 2 === 1;
+          return `<div class="tl-event ${esc(e.type)} ${below ? "below" : ""}" style="left:${x}%;"><div class="lbl">${esc(e.label)}</div><div class="dot"></div><div class="date-lbl">${esc(e.date.slice(2))}</div></div>`;
+        }).join("");
+        if ($("timeline-detail")) $("timeline-detail").innerHTML = evs.map((e) => {
+          const days = Math.floor((e.d - todayDate) / dayMs);
+          const badge = STR.tlBadge[e.type] || "·";
+          return `<div class="tl-row ${esc(e.type)}"><div class="tl-row-date">${esc(e.date)}<br><span class="badge">${esc(badge)}</span></div><div class="tl-row-body"><div class="tl-row-label">${esc(e.label)} <span style="color:var(--muted);font-weight:500;">· ${esc(STR.tlCountdown(days))}</span></div><div class="tl-row-text">${esc(e.detail || STR.tlNoDetail)}</div></div></div>`;
+        }).join("");
+        if (chipsEl) chipsEl.innerHTML = [["all", STR.tlAll]].concat(types.map((t) => [t, STR.tlBadge[t] || t]))
+          .map(([k, lbl]) => `<button class="tl-chip${tlFilter === k ? " active" : ""}" type="button" data-tl="${esc(k)}">${esc(lbl)}</button>`).join("");
+      };
+      renderTL();
     }
 
     // 7. NOT NOW + redlines
