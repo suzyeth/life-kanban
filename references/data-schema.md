@@ -8,6 +8,7 @@ so plain text in any string field is safe.
 const DATA = {
   meta: { ... },
   nav: [ ... ],              // optional — multi-board sub-page links
+  goals: [ ... ],            // optional — goal hierarchy (cards link via goal:"id")
   tracks: [ ... ],
   progress: { ... },
   now:  [ card, ... ],
@@ -46,6 +47,19 @@ Hidden when empty. Each board is its own HTML file sharing `dashboard.css` + `da
 |---|---|---|
 | `label` | string | Chip text, e.g. `"🟦 Work board"`. |
 | `href` | string | Filename of the sibling board, e.g. `"work.html"`. The chip auto-marks `.current` when the filename matches the open page. |
+
+## `goals` (array, optional) — goal hierarchy
+
+The "why" behind tasks. Renders a 🎯 strip with a progress bar per goal; clicking a goal filters to its
+cards (reuses the track-filter mechanism). Empty `[]` → hidden.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | Join key — cards reference it via `goal: "<id>"`. |
+| `title` | string | Shown in the chip + on linked cards' 🎯 pill. |
+| `horizon` | string | e.g. `"This month"`, `"Q2"` — shown on hover. |
+| `why` | string | The motivation — shown on hover. |
+| `progress` | number \| null | `null` → auto-computed from linked cards' done ratio; `0-100` overrides. |
 
 ## `tracks` (array) — color categories (data-driven)
 
@@ -90,6 +104,8 @@ One task = one card. The only difference between the three columns is the **time
 | `action` | string | — | Verb for the badge when not a project, e.g. `do`/`learn`/`write`/`review`. Badge = `label·action`. |
 | `subject` | string | — | For project-type cards: emoji+name, e.g. `"🎯 Gacha"`. Badge = `label subject` (overrides action). |
 | `due` | `YYYY-MM-DD` | — | Optional due date. While not done: past → red `overdue` outline + chip; today/≤7d → amber "soon" chip; counted in the NOW today-summary line. |
+| `goal` | string | — | Optional link to a `goals[].id`. Shows a 🎯 pill and counts toward that goal's auto progress. Click a goal chip to filter to its cards. |
+| `repeat` | string | — | Optional recurrence (`"weekly"` / `"Mon,Wed,Fri"` / `"monthly"`). Shows a ↻ badge; Refresh regenerates the card into the next period instead of dropping it. |
 | `id` | string | — | Optional **stable key** for the browser overlay (check/drag persistence). If omitted, the key is derived as `track\|title` (with `#n` on duplicates). Add an explicit `id` if you plan to rename a card's title but keep its in-browser state. |
 
 Badge rendering: `subject` wins → else `action` → else just the track `label`.

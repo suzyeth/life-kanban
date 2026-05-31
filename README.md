@@ -68,6 +68,8 @@ then double‑click it. Everything works without Claude — the skill is just a 
 **Glance & structure**
 - 3 columns — 🔥 NOW·Today / 📅 This week / ⏭ NEXT&LATER
 - **Data‑driven color tracks** — define your categories in `DATA.tracks`; colors + legend filters generate themselves
+- **🎯 Goals** — `DATA.goals` link tasks to a "why"; a goals strip shows auto‑progress and filters to a goal's cards
+- **Recurring tasks** — `repeat` on a card (weekly / Mon,Wed,Fri / monthly) regenerates it each Refresh instead of dropping it
 - **Today summary** line (`4 tasks · 1 ⭐ · 1 P0 · 0 done · 1 overdue`) + auto progress bar
 - **Due dates** → overdue cards get a red outline + chip
 - Non‑linear (log‑scale) long‑range **timeline**, **NOT‑NOW** + **redlines** rails

@@ -173,7 +173,8 @@ All edits target the `DATA` block. Read the current board first, then make the s
 
 | Operation | What to change |
 |---|---|
-| **Add a card** | Append an object to `now[]` / `week[]` / `next[]`. Required: a time field (`time` for now, `day` for week, `when` for next) + `title` + `track`. Optional: `meta`, `tag` (`P0`/`P1`/`P2`), `star`, `action`, `subject`, `due` (`YYYY-MM-DD` → overdue highlight). The user can also add cards in-browser (+ Add card) — those live in the overlay until synced back. |
+| **Add a card** | Append an object to `now[]` / `week[]` / `next[]`. Required: a time field (`time` for now, `day` for week, `when` for next) + `title` + `track`. Optional: `meta`, `tag` (`P0`/`P1`/`P2`), `star`, `action`, `subject`, `due` (`YYYY-MM-DD` → overdue highlight), `goal` (link to a `goals[].id` → shows a 🎯 pill, feeds goal progress), `repeat` (`"weekly"`/`"Mon,Wed,Fri"`/`"monthly"` → ↻ badge, regenerated each Refresh). The user can also add cards in-browser (+ Add card) — those live in the overlay until synced back. |
+| **Goal** | Add/adjust `goals[]` (`{id, title, horizon, why, progress}`). Link cards via `goal:"<id>"`. Progress auto-computes from linked cards' done ratio unless `progress` (0-100) is set. |
 | **Complete a card** | Set `done: true` on it (it strikes through + auto-hides under the 👁️ toggle). For dated columns, optionally prefix the time field with ✅. |
 | **Move a card** | Cut the object from one column array, paste into the target. NOW↔WEEK↔NEXT are just three arrays. |
 | **Edit a card** | Change its fields in place. Keep immutability discipline at the *file* level — rewrite the whole object cleanly rather than half-editing. |
@@ -218,6 +219,8 @@ The periodic review that resets the board for a new cycle. Follow `references/ma
    - NOW → clear out; completed items either archived (deleted) or moved down as `done:true`.
    - WEEK → archive finished, carry over slipped (mark honestly, don't silently drop).
    - NEXT/LATER → promote what's now in-scope into WEEK; let the rest roll forward.
+   - **Recurring** — cards with `repeat` regenerate into the new period (reset to not-done) instead of
+     being dropped; goal progress carries via the goal, not the card.
 5. **Timeline** — advance the `today` marker; promote any deadline now inside 7 days into a card.
 6. **Refresh `notNow[]`** for the new cycle and re-check `redlines[]` still apply.
 7. **Mirror to `.md`** if one exists, so the markdown stays in sync.

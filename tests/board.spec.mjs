@@ -139,6 +139,20 @@ test('lower sections are collapsed by default', async ({ page }) => {
   expect(open).toBe(false);
 });
 
+test('goals strip renders, filters to its cards, and auto-progresses on check', async ({ page }) => {
+  await expect(page.locator('#goals-strip')).toBeVisible();
+  await expect(page.locator('#goals-strip .goal-chip')).toHaveCount(1);
+  await expect(page.locator('.card .goal-pill')).toHaveCount(2);   // 2 example cards link to ship-v1
+  await expect(page.locator('.card .rep')).toHaveCount(1);          // 1 example card repeats
+  await expect(page.locator('#goals-strip .gpct')).toHaveText('0%');
+  // click the goal → only its linked cards remain unfiltered
+  await page.locator('#goals-strip .goal-chip').click();
+  await expect(page.locator('.card:not(.filtered-out)')).toHaveCount(2);
+  // check a linked card → progress rises
+  await page.locator('.card[data-goal="ship-v1"]').first().locator('.chk').click();
+  await expect(page.locator('#goals-strip .gpct')).toHaveText('50%');
+});
+
 test('review log renders trend bars, rows, and a neglected-track warning', async ({ page }) => {
   await page.locator('#more-fold').evaluate(el => { el.open = true; });   // ledger lives in the collapsed fold
   await expect(page.locator('#ledger-section')).toBeVisible();

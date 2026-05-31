@@ -200,6 +200,17 @@
   html.light .card.star { background: linear-gradient(90deg, rgba(188,76,0,0.07) 0%, var(--bg-card) 60%); }
   html.light .card.has-meta:not(.star):hover { background: #f0f3f6; }
 
+  /* 🎯 Goals strip */
+  .goals { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .goal-chip { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 6px 12px; font-size: 12px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .goal-chip:hover { color: var(--text); border-color: var(--accent); }
+  .goal-chip.active { color: var(--text); box-shadow: 0 0 0 1px var(--accent); }
+  .goal-chip .gp { width: 54px; height: 5px; background: var(--bg-card); border-radius: 3px; overflow: hidden; }
+  .goal-chip .gp > i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); }
+  .goal-chip .gpct { font-weight: 600; color: var(--text); }
+  .card .goal-pill { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 3px; background: var(--bg-elev); color: var(--muted); margin-right: 5px; vertical-align: middle; }
+  .card .rep { font-size: 10px; color: var(--muted); margin-left: 4px; }
+
   /* 📒 Review log (history ledger) */
   .ledger-trend { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin: 4px 0 18px; }
   .ledger-trend .bar { flex: 1; max-width: 34px; background: linear-gradient(180deg, var(--green), var(--blue)); border-radius: 3px 3px 0 0; position: relative; min-height: 3px; opacity: 0.85; }
@@ -270,6 +281,12 @@ const DATA = {
     { id: "life",    label: "Life",    color: "#ec4899", emoji: "🌸" },
     { id: "system",  label: "System",  color: "#8b949e", emoji: "⬛" },
   ],
+  // 🎯 Goals (optional) — the "why" behind tasks. Cards link via goal:"<id>".
+  //    progress: null → auto-computed from linked cards' done ratio; a number (0-100) overrides.
+  //    Renders a strip; click a goal to filter its cards. Empty [] = hidden.
+  goals: [
+    { id: "ship-v1", title: "Ship v1", horizon: "This month", why: "the thing this period is really for", progress: null },
+  ],
   progress: {
     label: "P0 progress this period",
     pct: null,                    // null = auto from week[] done ratio; a number overrides
@@ -277,12 +294,12 @@ const DATA = {
   },
   // 🔥 NOW · Today (one task per card, time = time slot)
   now: [
-    { time: "AM ⭐", title: "The single most important thing today", meta: "Optional detail — click the card to expand.", tag: "P0", star: true, track: "work", action: "do", due: "2026-01-01" },
-    { time: "21-22", title: "Secondary task example", meta: "track sets the left border color + badge.", track: "learn", action: "learn", due: "2025-12-31" },
+    { time: "AM ⭐", title: "The single most important thing today", meta: "Optional detail — click the card to expand.", tag: "P0", star: true, track: "work", action: "do", due: "2026-01-01", goal: "ship-v1" },
+    { time: "21-22", title: "Secondary task example", meta: "track sets the left border color + badge.", track: "learn", action: "learn", due: "2025-12-31", repeat: "weekly" },
   ],
   // 📅 This week (one task per card, day = planned day; done:true strikes through + collapses)
   week: [
-    { day: "Mon", title: "This week's task A", meta: "", track: "work", action: "do" },
+    { day: "Mon", title: "This week's task A", meta: "", track: "work", action: "do", goal: "ship-v1" },
     { day: "Wed ✅", title: "Completed task example", meta: "Done cards hide by default; toggle with the 👁️ chip.", done: true, track: "project", subject: "🎯 Sample project" },
   ],
   // ⏭ NEXT & LATER (next period + long range, when = time window)
@@ -357,6 +374,8 @@ const DATA = {
 </div>
 
 <div class="legend" id="legend"></div>
+
+<div class="goals" id="goals-strip" style="display:none;"></div>
 
 <div class="kanban">
   <div class="col now">
@@ -435,6 +454,8 @@ const DATA = {
     const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
     return `rgba(${r},${g},${b},${a})`;
   };
+  const goalMap = {};
+  (DATA.goals || []).forEach(g => { goalMap[g.id] = g; });
   const trackMap = {};
   let css = '';
   DATA.tracks.forEach(t => {
@@ -530,12 +551,13 @@ const DATA = {
     const d = c.d, done = effDone(c);
     const du = done ? null : dueInfo(d.due);
     const dueCls = du ? (du.cls === 'overdue' ? 'overdue' : du.cls === 'soon' ? 'soon' : '') : '';
-    return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${c.added?'added':''} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" draggable="true">
+    return `<div class="card ${d.star?'star':''} ${done?'done':''} ${d.meta?'has-meta':''} ${c.added?'added':''} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal||'')}" draggable="true">
       <button class="chk" type="button" title="Toggle done" aria-label="Toggle done">${done?'✓':''}</button>
       ${c.added?`<button class="del" type="button" title="Delete card" aria-label="Delete card">✕</button>`:''}
+      ${d.goal && goalMap[d.goal] ? `<span class="goal-pill" title="${esc(goalMap[d.goal].horizon||'')}">🎯 ${esc(goalMap[d.goal].title)}</span>` : ''}
       ${trackBadge(d)}
       ${d.tag?`<span class="tag ${esc(String(d.tag).toLowerCase())}">${esc(d.tag)}</span>`:''}
-      <span class="time">${esc(c.label)}</span>${du?`<span class="due">${esc(du.label)}</span>`:''}
+      <span class="time">${esc(c.label)}</span>${d.repeat?`<span class="rep" title="repeats ${esc(d.repeat)}">↻</span>`:''}${du?`<span class="due">${esc(du.label)}</span>`:''}
       <div class="title">${esc(d.title)}</div>
       ${d.meta?`<div class="meta">${esc(d.meta)}</div>`:''}
     </div>`;
@@ -577,15 +599,40 @@ const DATA = {
     if (dcEl) dcEl.textContent = document.querySelectorAll('.card.done').length + document.querySelectorAll('.track-item.closed').length;
   };
 
-  // 视图层: track 筛选 + 搜索 (每次 re-render 后重应用)
+  // 视图层: track / goal 筛选 + 搜索 (每次 re-render 后重应用)
   let activeFilter = 'all';
   const reapplyView = () => {
     const needle = ($("search").value || '').trim().toLowerCase();
+    const goalId = activeFilter.startsWith('goal:') ? activeFilter.slice(5) : null;
     document.querySelectorAll('.card, .track-item').forEach(el => {
-      const pass = activeFilter === 'all' || el.classList.contains(`track-${activeFilter}`);
+      let pass;
+      if (activeFilter === 'all') pass = true;
+      else if (goalId) pass = el.dataset.goal === goalId;   // .track-item has no goal → filtered out
+      else pass = el.classList.contains(`track-${activeFilter}`);
       el.classList.toggle('filtered-out', !pass);
       el.classList.toggle('search-hidden', !!needle && !el.textContent.toLowerCase().includes(needle));
     });
+  };
+
+  // 🎯 Goals strip — progress (auto from linked cards' done ratio, or manual) + click-to-filter
+  const renderGoals = () => {
+    const goals = DATA.goals || [];
+    const strip = $("goals-strip");
+    if (!goals.length) { strip.style.display = 'none'; return; }
+    strip.style.display = '';
+    strip.innerHTML = goals.map(g => {
+      let pct = g.progress;
+      if (pct == null) { const lk = cards.filter(c => c.d.goal === g.id); pct = lk.length ? Math.round(lk.filter(effDone).length / lk.length * 100) : 0; }
+      const act = activeFilter === 'goal:' + g.id ? ' active' : '';
+      return `<span class="goal-chip${act}" data-goalfilter="${esc(g.id)}" title="${esc(g.horizon || '')}${g.why ? ' · ' + esc(g.why) : ''}">🎯 ${esc(g.title)} <span class="gp"><i style="width:${pct}%"></i></span><span class="gpct">${pct}%</span></span>`;
+    }).join('');
+    strip.querySelectorAll('.goal-chip').forEach(ch => ch.addEventListener('click', () => {
+      const id = ch.dataset.goalfilter;
+      activeFilter = (activeFilter === 'goal:' + id) ? 'all' : 'goal:' + id;
+      document.querySelectorAll('.legend-chip[data-filter]').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all' && activeFilter === 'all'));
+      renderGoals();
+      reapplyView();
+    }));
   };
 
   // NOW today-summary line
@@ -619,7 +666,7 @@ const DATA = {
     $("sync-msg").innerHTML = `📝 <b>${n}</b> local change(s)${hasOrder ? ' (incl. reorder)' : ''} not yet written to the file — click 📤 Copy latest DATA and paste it over the DATA block to commit.`;
   };
 
-  const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshSummary(b); refreshBanner(); reapplyView(); };
+  const repaint = () => { const b = renderColumns(); const s = computeStats(b); refreshProgress(s); refreshLegendCounts(s); refreshSummary(b); renderGoals(); refreshBanner(); reapplyView(); };
 
   // —— Interactions: check / delete-added / add-form toggle (delegated) ——
   document.addEventListener('click', e => {
@@ -848,6 +895,7 @@ const DATA = {
     chip.addEventListener('click', () => {
       activeFilter = chip.dataset.filter;
       document.querySelectorAll('.legend-chip[data-filter]').forEach(c => c.classList.toggle('active', c === chip));
+      renderGoals();   // clear any active goal-chip highlight
       reapplyView();
     });
   });
