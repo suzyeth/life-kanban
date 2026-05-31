@@ -426,3 +426,23 @@ test('quick-add parses #track / P-tag / star / day token from the input', async 
   await expect(card.locator('.time')).toHaveText('Wed');
   await expect(card.locator('.title')).toHaveText('ship the thing'); // tokens stripped, title clean
 });
+
+test('habits grid renders; ticking today sets a streak + syncs + undoes', async ({ page }) => {
+  await expect(page.locator('#habits-section')).toBeVisible();
+  const rows = page.locator('#habits-grid .habit-row');
+  await expect(rows).toHaveCount(2);                                   // template has 2 example habits
+  await expect(rows.first().locator('.habit-cell')).toHaveCount(7);    // 7-day window
+  await rows.first().locator('.habit-cell.today').click();
+  await expect(rows.first().locator('.habit-cell.today')).toHaveClass(/done/);
+  await expect(rows.first().locator('.habit-streak')).toContainText('1');
+  await expect(page.locator('#sync-banner')).toBeVisible();
+  const stored = await page.evaluate(() => {
+    const s = Object.keys(localStorage).find((x) => x.includes(':overlay'));
+    const o = JSON.parse(localStorage.getItem(s)).habits || {};
+    return Object.values(o).some((v) => Object.values(v).some(Boolean));
+  });
+  expect(stored).toBe(true);
+  // undo reverts the check-in
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('#habits-grid .habit-row').first().locator('.habit-cell.today')).not.toHaveClass(/done/);
+});
