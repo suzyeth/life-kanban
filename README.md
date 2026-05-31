@@ -6,10 +6,10 @@
 > A single‑file HTML kanban for your life + projects — the board you glance at to answer
 > **"what should I be doing right now?"** Drive it by talking to Claude, or just open the file.
 
-One HTML file. A `DATA = {…}` block at the top is the **single source of truth**; the generic render
-script below it never changes. You tick / drag / add cards in the browser (saved to a localStorage
-overlay), and a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) **skill** maintains the
-file in plain language. Dark + light theme, zero dependencies, opens by double‑click.
+One HTML file. A `DATA = {…}` block at the top is the **single source of truth**; the generic engine
+(`lk-engine.js`, shared verbatim by every board) below it never changes. You tick / drag / add cards in
+the browser (saved to a localStorage overlay), and a [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+**skill** maintains the file in plain language. Dark + light theme, zero dependencies, opens by double‑click.
 
 ![life-kanban preview](docs/preview.png)
 
@@ -48,7 +48,7 @@ It also activates on the Chinese equivalents (做个看板 / 加一项 / 复盘 
 
 ```bash
 cp assets/kanban-template.html board.html
-cp assets/dashboard.css assets/dashboard-utils.js .
+cp assets/dashboard.css assets/dashboard-utils.js assets/lk-engine.js .
 ```
 
 Edit the `DATA` block at the top of `board.html` (schema → [`references/data-schema.md`](references/data-schema.md)),
@@ -109,13 +109,41 @@ flowchart TD
   S --> R
 ```
 
+## One engine, many boards
+
+Every board — the template and any real board — loads the **same** `lk-engine.js` (and `dashboard.css`
+/ `dashboard-utils.js`). A board is just: those three files copied in + a `DATA` block + two optional
+hooks. Fix a bug once in the engine, re-copy, every board benefits.
+
+- **Localization** — the engine is language‑neutral; all user‑facing strings default to English and are
+  overridden by a `window.LK_I18N = { … }` object (plain strings or `(args)=>string` functions). Define
+  it in a `<script>` **before** `lk-engine.js`. It lives outside `DATA`, so the "📤 Copy latest DATA"
+  round‑trip never touches it.
+- **Plugins** — bespoke sections a particular board needs (e.g. a weight tracker, an applications table)
+  are functions on `window.LK_PLUGINS = [fn, …]`, each run once after first paint with a context
+  `{ DATA, M, STR, todayDate, toLocalDate, dayMs, repaint, effDone, bucket, esc }`. They render into their
+  own DOM nodes; the engine owns the columns / legend / goals / timeline / ledger.
+- **Goals, two ways** — a goal with `track:"x"` derives progress from that track (click → filter the
+  track); a goal with no track derives from cards that link via `goal:"<id>"` (click → filter those).
+
+```html
+<script>const DATA = { /* … */ };</script>
+<script>
+  window.LK_I18N = { all: "📂 全部", showDone: "显示已完成", summary: o => `今天: ${o.n} 项…` /* … */ };
+  window.LK_PLUGINS = [ function renderHealth(ctx){ /* read ctx.DATA.health → render */ } ];
+</script>
+<script src="dashboard-utils.js"></script>
+<script src="lk-engine.js"></script>
+```
+
 ## Layout
 
 ```
 life-kanban/
 ├── SKILL.md                     # the skill workflow: detect mode → Create/Edit/Refresh/Analyze → verify
 ├── assets/
-│   ├── kanban-template.html     # the board — render-complete skeleton (copy, edit DATA)
+│   ├── kanban-template.html     # the board markup + DATA block (copy, edit DATA)
+│   ├── lk-engine.js             # the shared, language-neutral render/overlay/drag/sync engine
 │   ├── dashboard.css            # dark + light theme base
 │   ├── dashboard-utils.js       # esc / date helpers / stale-date banner
 │   └── kanban-template.md       # optional terminal-readable mirror
