@@ -15,8 +15,9 @@
   .focus-pill b { color: var(--accent); }
 
   /* Today hero + progress */
-  .hero { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-  .hero .date { font-size: 22px; font-weight: 700; }
+  .hero { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; margin-bottom: 14px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .hero .date { font-size: 18px; font-weight: 700; }
+  .hero .attn { flex-basis: 100%; margin: 2px 0 0; }
   .hero .date span { color: var(--accent); }
   .hero .progress-wrap { flex: 1; min-width: 280px; }
   .hero .progress-wrap .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
@@ -365,8 +366,6 @@ const DATA = {
 
 <nav class="subpage-nav" id="subpage-nav" style="display:none;"></nav>
 
-<div class="attn" id="attn-strip" style="display:none;"></div>
-
 <div class="sync-banner" id="sync-banner" style="display:none;">
   <span id="sync-msg"></span>
   <span class="sync-actions">
@@ -382,6 +381,7 @@ const DATA = {
     <div class="progress"><div id="hero-progress-bar"></div></div>
     <div style="font-size: 11px; color: var(--muted); margin-top: 6px;" id="hero-progress-detail"></div>
   </div>
+  <div class="attn" id="attn-strip" style="display:none;"></div>
 </div>
 
 <div class="toolbar">
