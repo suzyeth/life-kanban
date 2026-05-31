@@ -332,3 +332,83 @@ test('undo: Ctrl+Z reverts the last overlay change', async ({ page }) => {
   await expect(page.locator('#now-list .card').first()).not.toHaveClass(/done/);
   await expect(page.locator('#sync-banner')).toBeHidden();
 });
+
+// ===== code-review fixes =====
+
+test('expanded card stays expanded across a repaint (review #1)', async ({ page }) => {
+  // the 2nd NOW card ("Secondary task example") is has-meta + not star → expandable
+  const target = page.locator('#now-list .card', { hasText: 'Secondary task example' });
+  await target.locator('.title').click();           // expand it
+  await expect(target).toHaveClass(/expanded/);
+  // now interact with a DIFFERENT card → triggers a full repaint
+  await page.locator('#now-list .card').first().locator('.chk').click();
+  await expect(page.locator('#now-list .card', { hasText: 'Secondary task example' })).toHaveClass(/expanded/);
+});
+
+test('editing only the title keeps the existing tag (review #2)', async ({ page }) => {
+  const card = page.locator('#now-list .card').first(); // AM card has tag P0
+  const key = await card.getAttribute('data-key');
+  await card.locator('.edit').click();
+  await expect(card.locator('.card-editor .ce-tag')).toHaveValue('P0'); // existing tag preselected, not wiped
+  await card.locator('.card-editor .ce-title').fill('Reworded headline');
+  await card.locator('.card-editor .ce-save').click();
+  await expect(page.locator(`#now-list .card[data-key="${key}"] .tag`)).toHaveText('P0');
+});
+
+test('copy-today reflects in-browser edits (review #3)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const card = page.locator('#now-list .card').first();
+  await card.locator('.edit').click();
+  await card.locator('.card-editor .ce-title').fill('EDITED-FOR-COPY');
+  await card.locator('.card-editor .ce-save').click();
+  await page.click('#copy-today');
+  const clip = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clip).toContain('EDITED-FOR-COPY');
+});
+
+test('reordering a folded NEXT keeps hidden cards in ov.order (review #4)', async ({ page }) => {
+  // grow NEXT to 9 (>8) so it folds, then drag the first visible NEXT card and confirm the
+  // overlay order retains ALL keys (not just the 8 visible ones).
+  await page.locator('.add-row[data-col="next"] .add-toggle').click();
+  const inp = page.locator('.add-row[data-col="next"] .add-form input');
+  for (let i = 0; i < 7; i++) { await inp.fill('n' + i); await inp.press('Enter'); }
+  await expect(page.locator('#next-list .next-more')).toBeVisible();      // folded (9 > 8)
+  const firstKey = await page.locator('#next-list .card').first().getAttribute('data-key');
+  await page.evaluate((k) => {
+    const card = document.querySelector(`.card[data-key="${CSS.escape(k)}"]`);
+    card.dispatchEvent(new Event('dragstart', { bubbles: true }));
+    document.getElementById('next-list').closest('.col').dispatchEvent(new Event('drop', { bubbles: true }));
+  }, firstKey);
+  const orderLen = await page.evaluate(() => {
+    const s = Object.keys(localStorage).find((x) => x.includes(':overlay'));
+    return JSON.parse(localStorage.getItem(s)).order.next.length;
+  });
+  expect(orderLen).toBe(9); // all 9, not the 8 visible — hidden card preserved
+});
+
+test('done-count includes plugin-rendered .app.rejected (review #5)', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.LK_PLUGINS = [() => {
+      const d = document.createElement('div');
+      d.className = 'app rejected'; d.textContent = 'x';
+      document.body.appendChild(d);
+    }];
+  });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#now-list .card').length > 0);
+  // template has 1 done card (week "Wed ✅") + the plugin's 1 rejected app = 2
+  await expect(page.locator('#done-count')).toHaveText('2');
+});
+
+test('keyboard-move at a column edge does not push a no-op undo state (review #6)', async ({ page }) => {
+  const card = page.locator('#now-list .card').first();
+  // first toggle a real change
+  await card.locator('.chk').click();
+  await expect(card).toHaveClass(/done/);
+  // press ArrowLeft on a NOW card's grab (already leftmost column) → should be a no-op, no snapshot
+  await card.locator('.grab').focus();
+  await page.keyboard.press('ArrowLeft');
+  // a single undo should revert the real change (not get absorbed by a no-op edge entry)
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('#now-list .card').first()).not.toHaveClass(/done/);
+});

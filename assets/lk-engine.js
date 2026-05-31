@@ -178,7 +178,12 @@
     // responsive: stack columns on narrow screens
     css += `@media (max-width:640px){.kanban{display:block !important;}.kanban .col{margin-bottom:14px;}}`;
     // ===== engine-rendered control styles — injected so EVERY board has them (not just boards copied
-    //       from the template's inline <style>). This is what makes the ☑ checkbox visible + clickable. =====
+    //       from the template's inline <style>). This is what makes the ☑ checkbox visible + clickable.
+    //   Why injected (not dashboard.css): the shared dashboard.css carries only the base THEME; .card and
+    //   these control classes live per-board inline, so the engine — the thing that RENDERS these elements
+    //   — is their single shared source. Appended last on purpose: a board may lack any rule for them
+    //   (then this supplies it) or have an older one (then this is the canonical, e.g. the chk left-padding
+    //   that reserves space). A board can still override via higher specificity if it ever needs to. =====
     css += `.card{padding-left:30px;}`;
     css += `.card:hover{box-shadow:0 2px 10px rgba(0,0,0,0.28);}`;
     css += `.card .chk{position:absolute;left:9px;top:10px;width:16px;height:16px;padding:0;font:inherit;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;font-size:11px;line-height:13px;text-align:center;color:var(--green);background:var(--bg-elev);user-select:none;transition:all .12s;z-index:3;}`;
@@ -259,6 +264,7 @@
     };
 
     let cards = [];
+    const expandedKeys = new Set(); // cards the user clicked to expand — preserved across repaint
     const buildCards = () => {
       cards = []; const kc = {};
       COLS.forEach((col) => (DATA[col] || []).forEach((c) => {
@@ -294,6 +300,14 @@
       return b;
     };
 
+    // when rebuilding ov.order from the DOM, the DOM may hold only the VISIBLE cards (e.g. a folded NEXT
+    // column) — append the column's other cards so their order isn't clobbered to DATA-default.
+    const withHidden = (col, seq, exclude) => {
+      const have = new Set(seq); if (exclude) have.add(exclude);
+      const tail = bucket()[col].map((x) => x.key).filter((k) => !have.has(k));
+      return [...seq, ...tail];
+    };
+
     const dueInfo = (due) => {
       if (!due) return null;
       const days = Math.floor((toLocalDate(due) - todayDate) / dayMs);
@@ -311,7 +325,7 @@
       const tl = (trackMap[track] || {}).label || track || "";
       const flags = [done ? STR.aDone : null, du && du.cls === "overdue" ? STR.aOverdue : null, star ? STR.aStar : null].filter(Boolean).join(", ");
       const aria = `${tl ? tl + ": " : ""}${c.label} ${title}${flags ? " — " + flags : ""}`;
-      return `<div class="card ${star ? "star" : ""} ${done ? "done" : ""} ${meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
+      return `<div class="card ${star ? "star" : ""} ${done ? "done" : ""} ${meta ? "has-meta" : ""} ${expandedKeys.has(c.key) ? "expanded" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
       <button class="chk" type="button" title="${esc(STR.chkTitle)}" aria-label="${esc(STR.chkTitle)}">${done ? "✓" : ""}</button>
       <button class="grab" type="button" aria-label="${esc(STR.grabLabel)}" title="${esc(STR.grabLabel)}">⠿</button>
       <button class="edit" type="button" aria-label="${esc(STR.editTitle)}" title="${esc(STR.editTitle)}">✎</button>
@@ -329,22 +343,23 @@
     const renderColumns = () => {
       const b = bucket();
       COLS.forEach((col) => {
+        const listEl = $(LIST[col]); if (!listEl) return; // a board may omit a column — skip, don't throw
         const arr = b[col];
-        $(CNT[col]).textContent = arr.length;
+        const cntEl = $(CNT[col]); if (cntEl) cntEl.textContent = arr.length;
         if (col === "next") {
           const foldAfter = DATA.nextFoldAfter != null ? DATA.nextFoldAfter : 8;
           const needle = (($("search") || {}).value || "").trim();
           const forceOpen = !!needle || activeFilter !== "all" || nextExpanded;
           if (!forceOpen && arr.length > foldAfter) {
-            $(LIST[col]).innerHTML = arr.slice(0, foldAfter).map(renderCard).join("")
+            listEl.innerHTML = arr.slice(0, foldAfter).map(renderCard).join("")
               + `<button class="next-more" type="button">${esc(STR.nextMore(arr.length - foldAfter))}</button>`;
             return;
           }
-          $(LIST[col]).innerHTML = arr.map(renderCard).join("")
+          listEl.innerHTML = arr.map(renderCard).join("")
             + (nextExpanded && arr.length > foldAfter ? `<button class="next-more" type="button" data-collapse="1">${esc(STR.nextLess)}</button>` : "");
           return;
         }
-        $(LIST[col]).innerHTML = arr.map(renderCard).join("");
+        listEl.innerHTML = arr.map(renderCard).join("");
       });
       return b;
     };
@@ -378,7 +393,9 @@
         if (el) el.textContent = progressLabel(s.ts[t.id]);
       });
       const dcEl = $("done-count");
-      if (dcEl) dcEl.textContent = document.querySelectorAll(".card.done").length + document.querySelectorAll(".track-item.closed, .app.rejected").length;
+      // count done CARDS from the overlay-aware model (DOM misses fold-hidden done cards); add closed
+      // tracking / rejected-app nodes that plugins render into the DOM.
+      if (dcEl) dcEl.textContent = cards.filter(effDone).length + document.querySelectorAll(".track-item.closed, .app.rejected").length;
     };
 
     // view layer: track / goal filter + search (re-applied after every render)
@@ -478,8 +495,8 @@
       if (at == null || at < 0 || at > seq.length) at = seq.length;
       seq.splice(at, 0, key);
       snapshot();
-      ov.order[col] = seq; ov.col[key] = col;
-      if (from !== col) ov.order[from] = seqOf(from).filter((k) => k !== key);
+      ov.order[col] = withHidden(col, seq); ov.col[key] = col;
+      if (from !== col) ov.order[from] = withHidden(from, seqOf(from).filter((k) => k !== key), key);
       saveOv(); repaint();
     };
 
@@ -489,7 +506,9 @@
       const c = cards.find((x) => x.key === key); if (!c) return;
       if (card.querySelector(".card-editor")) return;
       const curTag = effTag(c), curTrack = effTrack(c), curDue = effDue(c), curStar = effStar(c);
-      const tagOpts = ["", "P0", "P1", "P2"].map((t) => `<option value="${t}"${t === curTag ? " selected" : ""}>${esc(t || STR.editNoTag)}</option>`).join("");
+      const tagSet = ["", "P0", "P1", "P2"];
+      const tagList = tagSet.includes(curTag) ? tagSet : [curTag, ...tagSet]; // keep a non-standard existing tag (don't silently wipe it)
+      const tagOpts = tagList.map((t) => `<option value="${esc(t)}"${t === curTag ? " selected" : ""}>${esc(t || STR.editNoTag)}</option>`).join("");
       const trackOpts = `<option value=""${!curTrack ? " selected" : ""}>${esc(STR.editNoTrack)}</option>`
         + (DATA.tracks || []).map((t) => `<option value="${esc(t.id)}"${t.id === curTrack ? " selected" : ""}>${esc(t.emoji || "")} ${esc(t.label)}</option>`).join("");
       const ed = document.createElement("div");
@@ -566,7 +585,11 @@
         return;
       }
       const card = e.target.closest(".card.has-meta");
-      if (card && !card.classList.contains("star")) card.classList.toggle("expanded");
+      if (card && !card.classList.contains("star")) {
+        const k = card.dataset.key;
+        if (expandedKeys.has(k)) expandedKeys.delete(k); else expandedKeys.add(k);
+        card.classList.toggle("expanded");
+      }
     });
 
     // —— editor + move-mode keyboard: Esc cancels, Enter in the title field saves ——
@@ -601,13 +624,13 @@
         e.preventDefault(); colEl.classList.remove("drop-target");
         if (!dragKey) return;
         const listEl = $(LIST[col]);
-        const seq = [...listEl.querySelectorAll(".card")].map((el) => el.dataset.key).filter((k) => k !== dragKey);
+        const seq = seqOf(col).filter((k) => k !== dragKey);
         const ref = afterEl(listEl, e.clientY);
         const at = ref ? Math.max(0, seq.indexOf(ref.dataset.key)) : seq.length;
         seq.splice(at, 0, dragKey);
         snapshot();
-        ov.order[col] = seq; ov.col[dragKey] = col;
-        if (dragFrom && dragFrom !== col) ov.order[dragFrom] = [...$(LIST[dragFrom]).querySelectorAll(".card")].map((el) => el.dataset.key).filter((k) => k !== dragKey);
+        ov.order[col] = withHidden(col, seq); ov.col[dragKey] = col;
+        if (dragFrom && dragFrom !== col) ov.order[dragFrom] = withHidden(dragFrom, seqOf(dragFrom).filter((k) => k !== dragKey), dragKey);
         saveOv(); dragKey = null; repaint();
       });
     });
@@ -615,8 +638,7 @@
     // —— keyboard move (accessible alternative to drag): focus a card's ⠿ grab handle,
     //    then ← → move between columns, ↑ ↓ reorder within the column ——
     const refocusGrab = (key) => {
-      const sel = `.card[data-key="${(window.CSS && CSS.escape) ? CSS.escape(key) : key.replace(/["\\]/g, "\\$&")}"] .grab`;
-      const el = document.querySelector(sel);
+      const el = document.querySelector(`.card[data-key="${cssEsc(key)}"] .grab`);
       if (el) el.focus();
     };
     document.addEventListener("keydown", (e) => {
@@ -628,22 +650,22 @@
       const c = cards.find((x) => x.key === card.dataset.key);
       if (!c) return;
       const col = effCol(c);
-      const seqOf = (cl) => [...$(LIST[cl]).querySelectorAll(".card")].map((el) => el.dataset.key);
-      snapshot();
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const ni = COLS.indexOf(col) + (e.key === "ArrowRight" ? 1 : -1);
-        if (ni < 0 || ni >= COLS.length) return;
+        if (ni < 0 || ni >= COLS.length) return; // at an edge — no-op, don't snapshot
         const ncol = COLS[ni];
-        ov.order[col] = seqOf(col).filter((k) => k !== c.key);
-        ov.order[ncol] = [...seqOf(ncol), c.key];
+        snapshot();
+        ov.order[col] = withHidden(col, seqOf(col).filter((k) => k !== c.key), c.key);
+        ov.order[ncol] = withHidden(ncol, [...seqOf(ncol), c.key]);
         ov.col[c.key] = ncol;
       } else {
         const seq = seqOf(col);
         const idx = seq.indexOf(c.key);
         const ni = idx + (e.key === "ArrowDown" ? 1 : -1);
-        if (ni < 0 || ni >= seq.length) return;
+        if (ni < 0 || ni >= seq.length) return; // at an edge — no-op, don't snapshot
         seq.splice(idx, 1); seq.splice(ni, 0, c.key);
-        ov.order[col] = seq;
+        snapshot();
+        ov.order[col] = withHidden(col, seq);
       }
       saveOv(); repaint(); refocusGrab(c.key);
     });
@@ -864,9 +886,8 @@
     if (copyBtn) copyBtn.addEventListener("click", async () => {
       const head = STR.copyHead(M);
       const lines = bucket().now.map((c) => {
-        const d = c.d;
-        const mark = `${effDone(c) ? "✅" : "⬜"}${d.star ? " ⭐" : ""}${d.tag ? " " + d.tag : ""}`;
-        return `${mark} [${c.label}] ${d.title}`;
+        const mark = `${effDone(c) ? "✅" : "⬜"}${effStar(c) ? " ⭐" : ""}${effTag(c) ? " " + effTag(c) : ""}`;
+        return `${mark} [${c.label}] ${effTitle(c)}`;
       });
       const text = head + "\n" + lines.join("\n");
       try { await navigator.clipboard.writeText(text); copyBtn.textContent = STR.copied; copyBtn.classList.add("ok"); }
@@ -892,7 +913,10 @@
 
     // 13. page-specific plugins (health tracker, in-flight apps, anything bespoke)
     const ctx = { DATA, M, STR, todayDate, toLocalDate, dayMs, repaint, effDone, bucket, esc };
-    (window.LK_PLUGINS || []).forEach((fn) => { try { fn(ctx); } catch (e) { console.error("lk-engine: plugin error", e); } });
+    const plugins = window.LK_PLUGINS || [];
+    plugins.forEach((fn) => { try { fn(ctx); } catch (e) { console.error("lk-engine: plugin error", e); } });
+    // plugins render .app.rejected / .track-item.closed AFTER first paint — recount so done-count includes them
+    if (plugins.length) refreshLegendCounts(computeStats(bucket()));
   }
 
   // ===== Refresh helpers (PURE, no DOM) — codify the mechanical parts of the weekly review =====
