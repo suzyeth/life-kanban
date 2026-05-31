@@ -412,3 +412,17 @@ test('keyboard-move at a column edge does not push a no-op undo state (review #6
   await page.keyboard.press('Control+z');
   await expect(page.locator('#now-list .card').first()).not.toHaveClass(/done/);
 });
+
+test('quick-add parses #track / P-tag / star / day token from the input', async ({ page }) => {
+  await page.locator('.add-row[data-col="week"] .add-toggle').click();
+  const inp = page.locator('.add-row[data-col="week"] .add-form input');
+  await inp.fill('Wed ship the thing #learn P0 !');
+  await inp.press('Enter');
+  const card = page.locator('#week-list .card', { hasText: 'ship the thing' });
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveClass(/track-learn/);
+  await expect(card).toHaveClass(/star/);
+  await expect(card.locator('.tag')).toHaveText('P0');
+  await expect(card.locator('.time')).toHaveText('Wed');
+  await expect(card.locator('.title')).toHaveText('ship the thing'); // tokens stripped, title clean
+});

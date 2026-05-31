@@ -79,7 +79,7 @@ then double‑click it. Everything works without Claude — the skill is just a 
 - **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default · responsive on mobile
 
 **Daily use — all in the browser, no file edit**
-- ☑ check off · ✎ **edit inline** (title · details · tag · track · due date · ⭐) · ➕ **+ Add card** · **↩︎ undo** any of it with `Ctrl/⌘+Z`
+- ☑ check off · ✎ **edit inline** (title · details · tag · track · due date · ⭐) · ➕ **+ Add card** with **quick-capture tokens** (`周三 投简历 #求职 P0 !` → day + track + tag + star, rest is the title) · **↩︎ undo** any of it with `Ctrl/⌘+Z`
 - **move a card** three ways: 🖱️ drag · ⌨️ focus its ⠿ handle → ← → change column, ↑ ↓ reorder · 👆 **tap ⠿ then tap a column** (touch‑friendly)
 - 🔍 instant search · ⌨️ shortcuts (`/` `1‑9` `a` `d` `p` `Esc` · `Ctrl/⌘+Z` undo) · 📋 Copy today · 🖨️ print to clean PDF · 🌗 theme
 - ♿ **a11y & mobile** — every card is a keyboard‑operable group with an `aria-label` carrying its track + state (done / overdue / starred); columns stack and tap targets grow on small / touch screens
