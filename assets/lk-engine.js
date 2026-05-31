@@ -78,6 +78,11 @@
     copyFail: "⚠ Copy failed (select manually)",
     copyPrompt: "Copy the text below:",
     docTitleSuffix: " — Life Kanban",
+    // accessibility
+    grabLabel: "Move card — focus then ← → to change column, ↑ ↓ to reorder",
+    aDone: "done",
+    aOverdue: "overdue",
+    aStar: "starred",
   };
 
   function initKanban() {
@@ -123,6 +128,12 @@
       css += `.legend-chip.lc-${t.id}.active{border-color:${t.color};}`;
       css += `.legend-chip.lc-${t.id} .lc-count{color:${t.color};}`;
     });
+    // keyboard grab-handle (accessible drag) — revealed on hover/focus, never layout-shifts
+    css += `.card{position:relative;}`;
+    css += `.card .grab{position:absolute;bottom:5px;right:5px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;`
+        + `background:none;border:0;color:var(--muted);font-size:13px;line-height:1;cursor:grab;border-radius:4px;opacity:0;transition:opacity .12s;}`;
+    css += `.card:hover .grab,.card:focus-within .grab{opacity:.55;}`;
+    css += `.card .grab:hover,.card .grab:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px;}`;
     const styleEl = document.createElement("style");
     styleEl.id = "track-styles";
     styleEl.textContent = css;
@@ -205,8 +216,12 @@
       const d = c.d, done = effDone(c);
       const du = done ? null : dueInfo(d.due);
       const dueCls = du ? (du.cls === "overdue" ? "overdue" : du.cls === "soon" ? "soon" : "") : "";
-      return `<div class="card ${d.star ? "star" : ""} ${done ? "done" : ""} ${d.meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true">
+      const tl = (trackMap[d.track] || {}).label || d.track || "";
+      const flags = [done ? STR.aDone : null, du && du.cls === "overdue" ? STR.aOverdue : null, d.star ? STR.aStar : null].filter(Boolean).join(", ");
+      const aria = `${tl ? tl + ": " : ""}${c.label} ${d.title}${flags ? " — " + flags : ""}`;
+      return `<div class="card ${d.star ? "star" : ""} ${done ? "done" : ""} ${d.meta ? "has-meta" : ""} ${c.added ? "added" : ""} ${dueCls} ${trackClass(d.track)}" data-key="${esc(c.key)}" data-goal="${esc(d.goal || "")}" draggable="true" role="group" aria-label="${esc(aria)}">
       <button class="chk" type="button" title="${esc(STR.chkTitle)}" aria-label="${esc(STR.chkTitle)}">${done ? "✓" : ""}</button>
+      <button class="grab" type="button" aria-label="${esc(STR.grabLabel)}" title="${esc(STR.grabLabel)}">⠿</button>
       ${c.added ? `<button class="del" type="button" title="${esc(STR.delTitle)}" aria-label="${esc(STR.delTitle)}">✕</button>` : ""}
       ${d.goal && goalMap[d.goal] ? `<span class="goal-pill" title="${esc(goalMap[d.goal].horizon || "")}">🎯 ${esc(goalMap[d.goal].title)}</span>` : ""}
       ${trackBadge(d)}
@@ -395,6 +410,41 @@
         if (dragFrom && dragFrom !== col) ov.order[dragFrom] = [...$(LIST[dragFrom]).querySelectorAll(".card")].map((el) => el.dataset.key).filter((k) => k !== dragKey);
         saveOv(); dragKey = null; repaint();
       });
+    });
+
+    // —— keyboard move (accessible alternative to drag): focus a card's ⠿ grab handle,
+    //    then ← → move between columns, ↑ ↓ reorder within the column ——
+    const refocusGrab = (key) => {
+      const sel = `.card[data-key="${(window.CSS && CSS.escape) ? CSS.escape(key) : key.replace(/["\\]/g, "\\$&")}"] .grab`;
+      const el = document.querySelector(sel);
+      if (el) el.focus();
+    };
+    document.addEventListener("keydown", (e) => {
+      const grab = e.target.closest && e.target.closest(".grab");
+      if (!grab) return;
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+      e.preventDefault();
+      const card = grab.closest(".card");
+      const c = cards.find((x) => x.key === card.dataset.key);
+      if (!c) return;
+      const col = effCol(c);
+      const seqOf = (cl) => [...$(LIST[cl]).querySelectorAll(".card")].map((el) => el.dataset.key);
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const ni = COLS.indexOf(col) + (e.key === "ArrowRight" ? 1 : -1);
+        if (ni < 0 || ni >= COLS.length) return;
+        const ncol = COLS[ni];
+        ov.order[col] = seqOf(col).filter((k) => k !== c.key);
+        ov.order[ncol] = [...seqOf(ncol), c.key];
+        ov.col[c.key] = ncol;
+      } else {
+        const seq = seqOf(col);
+        const idx = seq.indexOf(c.key);
+        const ni = idx + (e.key === "ArrowDown" ? 1 : -1);
+        if (ni < 0 || ni >= seq.length) return;
+        seq.splice(idx, 1); seq.splice(ni, 0, c.key);
+        ov.order[col] = seq;
+      }
+      saveOv(); repaint(); refocusGrab(c.key);
     });
 
     // —— sync banner buttons ——

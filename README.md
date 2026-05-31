@@ -78,8 +78,9 @@ then double‑click it. Everything works without Claude — the skill is just a 
 - **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default · responsive on mobile
 
 **Daily use — all in the browser, no file edit**
-- ☑ check off · 🖱️ drag between/within columns · ➕ **+ Add card** inline
+- ☑ check off · 🖱️ drag (or ⌨️ **keyboard‑move**: focus a card's ⠿ handle → ← → change column, ↑ ↓ reorder) · ➕ **+ Add card** inline
 - 🔍 instant search · ⌨️ shortcuts (`/` `1‑9` `a` `d` `p` `Esc`) · 📋 Copy today · 🖨️ print to clean PDF · 🌗 theme
+- ♿ **a11y** — every card is a keyboard‑operable group with an `aria-label` carrying its track + state (done / overdue / starred), so the board isn't color‑only
 
 **Source of truth & sync**
 - The `DATA` block stays canonical; browser edits are a **localStorage overlay**
