@@ -42,7 +42,7 @@ together.
 |---|---|---|
 | **P1 — Memory** | #1 archive ledger + #7 retro + #6 imbalance + Analyze trends | one data structure unlocks three gaps; turns the board from a whiteboard into a ledger |
 | **P2 — Horizon** | #3 goal hierarchy + #2 recurring (`repeat`) | tasks gain a "why"; covers the recurring nature of life |
-| **P3 — Proactive & reachable** | #5 in-board attention strip + a scheduled daily-brief agent; #4 responsive polish | from passive to proactive; from desk to phone |
+| **P3 — Proactive & reachable** | ✅ #5 in-board attention strip + ✅ #4 responsive polish · ⏳ scheduled daily-brief agent (needs a cron time) | from passive to proactive; from desk to phone |
 | **Won't do (as-is)** | #4 true cross-device sync | breaks zero-dependency; only viable as an explicit opt-in adapter |
 
 ## Non-goals

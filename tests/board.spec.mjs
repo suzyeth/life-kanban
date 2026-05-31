@@ -139,6 +139,13 @@ test('lower sections are collapsed by default', async ({ page }) => {
   expect(open).toBe(false);
 });
 
+test('attention strip surfaces nudges (stale refresh / overdue)', async ({ page }) => {
+  // template DATA.today is a fixed past date → "Nd since refresh" fires; an example card is overdue
+  await expect(page.locator('#attn-strip')).toBeVisible();
+  await expect(page.locator('#attn-strip .a-chip')).not.toHaveCount(0);
+  await expect(page.locator('#attn-strip')).toContainText('since last refresh');
+});
+
 test('goals strip renders, filters to its cards, and auto-progresses on check', async ({ page }) => {
   await expect(page.locator('#goals-strip')).toBeVisible();
   await expect(page.locator('#goals-strip .goal-chip')).toHaveCount(1);

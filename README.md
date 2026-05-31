@@ -74,7 +74,8 @@ then double‑click it. Everything works without Claude — the skill is just a 
 - **Due dates** → overdue cards get a red outline + chip
 - Non‑linear (log‑scale) long‑range **timeline**, **NOT‑NOW** + **redlines** rails
 - **📒 Review log** — each weekly Refresh archives the closing period (completion‑rate trend bar + a one‑line retro + a "neglected track" flag), so the board has a *memory*, not just a snapshot
-- **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default
+- **⚡ Attention strip** — on open, surfaces nudges: "Nd since last refresh", "deadline in 3d", "N overdue in NOW"
+- **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default · responsive on mobile
 
 **Daily use — all in the browser, no file edit**
 - ☑ check off · 🖱️ drag between/within columns · ➕ **+ Add card** inline

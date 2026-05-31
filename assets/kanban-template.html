@@ -200,6 +200,22 @@
   html.light .card.star { background: linear-gradient(90deg, rgba(188,76,0,0.07) 0%, var(--bg-card) 60%); }
   html.light .card.has-meta:not(.star):hover { background: #f0f3f6; }
 
+  /* ⚡ Attention strip (proactive nudges on open) */
+  .attn { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .attn .a-chip { font-size: 12px; padding: 5px 12px; border-radius: 14px; background: var(--bg-elev); border: 1px solid var(--border); color: var(--muted); }
+  .attn .a-chip.due { border-color: var(--red); color: var(--red); }
+  .attn .a-chip.warn { border-color: var(--yellow); color: var(--yellow); }
+
+  /* 📱 Responsive polish */
+  @media (max-width: 600px) {
+    body { padding: 14px 12px 40px; }
+    h1 { font-size: 22px; }
+    .card { padding-left: 34px; }
+    .card .chk { width: 20px; height: 20px; line-height: 17px; left: 8px; }
+    .kbd-hint { display: none; }
+    .col { max-height: none; }
+  }
+
   /* 🎯 Goals strip */
   .goals { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .goal-chip { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 6px 12px; font-size: 12px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.15s; }
@@ -348,6 +364,8 @@ const DATA = {
 </header>
 
 <nav class="subpage-nav" id="subpage-nav" style="display:none;"></nav>
+
+<div class="attn" id="attn-strip" style="display:none;"></div>
 
 <div class="sync-banner" id="sync-banner" style="display:none;">
   <span id="sync-msg"></span>
@@ -911,6 +929,24 @@ const DATA = {
 
   // 首次渲染: 列 + 计数 + 进度 + 横幅 + 视图 (含叠加层)
   repaint();
+
+  // ⚡ Attention strip — proactive nudges computed on open (stale review / near deadline / overdue)
+  (function attn(){
+    const items = [];
+    const realToday = new Date().toISOString().slice(0, 10);
+    const ds = Math.floor((toLocalDate(realToday) - todayDate) / dayMs);
+    if (ds >= 5) items.push({ cls: 'warn', txt: `📅 ${ds}d since last refresh — time for a review` });
+    (DATA.timeline || []).forEach(e => {
+      const d = Math.floor((toLocalDate(e.date) - todayDate) / dayMs);
+      if (e.type === 'deadline' && d >= 0 && d <= 7) items.push({ cls: 'due', txt: `⏰ ${e.label} in ${d}d` });
+    });
+    const od = bucket().now.filter(c => !effDone(c) && c.d.due && Math.floor((toLocalDate(c.d.due) - todayDate) / dayMs) < 0).length;
+    if (od) items.push({ cls: 'due', txt: `🔴 ${od} overdue in NOW` });
+    const el = $("attn-strip");
+    if (!items.length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = items.map(i => `<span class="a-chip ${i.cls}">${esc(i.txt)}</span>`).join('');
+  })();
 
   // 10. 即时搜索 (与 track 筛选叠加, 统一走 reapplyView)
   const searchEl = $("search");
