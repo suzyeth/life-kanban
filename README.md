@@ -71,6 +71,7 @@ then double‑click it. Everything works without Claude — the skill is just a 
 - **Today summary** line (`4 tasks · 1 ⭐ · 1 P0 · 0 done · 1 overdue`) + auto progress bar
 - **Due dates** → overdue cards get a red outline + chip
 - Non‑linear (log‑scale) long‑range **timeline**, **NOT‑NOW** + **redlines** rails
+- **📒 Review log** — each weekly Refresh archives the closing period (completion‑rate trend bar + a one‑line retro + a "neglected track" flag), so the board has a *memory*, not just a snapshot
 - **First‑screen focus** — in‑flight / timeline / not‑now / redlines fold away by default
 
 **Daily use — all in the browser, no file edit**

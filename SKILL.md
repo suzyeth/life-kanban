@@ -204,15 +204,23 @@ The periodic review that resets the board for a new cycle. Follow `references/ma
    Don't refresh from memory. Confirm what *actually* got done vs slipped. **Also bake in any browser
    overlay** (if the sync banner shows pending ticks/drags, have the user hit 📤 Copy latest DATA and start
    the refresh from *that*), then the overlay can be cleared (↺) so the file is canonical again.
-2. **Update `meta`** — new `today`, `period`, `periodRange`, `periodDay`, `periodDayName`, and a
+2. **Archive the closing period (history ledger) — do this BEFORE clearing.** Prepend an entry to
+   `DATA.archive` (newest first) capturing the period you're closing:
+   - `done` / `planned` (counts) and `byTrack` (`{trackId: "done/total"}`) computed from the board
+   - `focus` (the period's P0), `shipped` (done titles), `slipped` (WEEK items not done)
+   - **`retro`** — ask the user **one reflection line**: "what went well / what slipped & why / one change?"
+     This is the point of the review; don't skip it.
+   - Trim `archive` to `archiveCap` (default 12); spill older entries into `review-log.md` if it exists.
+   - A brand-new board has `archive: []` — only Refresh populates it.
+3. **Update `meta`** — new `today`, `period`, `periodRange`, `periodDay`, `periodDayName`, and a
    rewritten one-line `focus`.
-3. **Roll the columns**:
+4. **Roll the columns**:
    - NOW → clear out; completed items either archived (deleted) or moved down as `done:true`.
    - WEEK → archive finished, carry over slipped (mark honestly, don't silently drop).
    - NEXT/LATER → promote what's now in-scope into WEEK; let the rest roll forward.
-4. **Timeline** — advance the `today` marker; promote any deadline now inside 7 days into a card.
-5. **Refresh `notNow[]`** for the new cycle and re-check `redlines[]` still apply.
-6. **Mirror to `.md`** if one exists, so the markdown stays in sync.
+5. **Timeline** — advance the `today` marker; promote any deadline now inside 7 days into a card.
+6. **Refresh `notNow[]`** for the new cycle and re-check `redlines[]` still apply.
+7. **Mirror to `.md`** if one exists, so the markdown stays in sync.
 
 **Exit gate:** board reflects the new period, `today` matches reality, slipped items are surfaced
 (not hidden), and it still renders one-screen. Verify per Step 6.
@@ -230,6 +238,10 @@ Compute and report:
    `tracking[]` items with large day-counts (>14 = stale per `daysClass`).
 4. **Timeline pressure** — nearest deadline and its countdown; anything overdue.
 5. **NOT-NOW / redline sanity** — flag if something in NOW contradicts a redline.
+6. **Trends (from `DATA.archive`)** — if history exists, report the completion-rate trajectory across
+   the last few periods (e.g. "42% → 55% → 67%, improving") and any **neglected track** (0 done for
+   2-3 periods running). This is the "am I actually getting better?" view — lead with it when asked
+   "where am I?".
 
 Present as the scorecard in Step 6. Offer to act on the findings (e.g. "promote the overdue
 deadline?") but don't edit unprompted.

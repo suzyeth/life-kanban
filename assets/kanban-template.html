@@ -200,6 +200,21 @@
   html.light .card.star { background: linear-gradient(90deg, rgba(188,76,0,0.07) 0%, var(--bg-card) 60%); }
   html.light .card.has-meta:not(.star):hover { background: #f0f3f6; }
 
+  /* 📒 Review log (history ledger) */
+  .ledger-trend { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin: 4px 0 18px; }
+  .ledger-trend .bar { flex: 1; max-width: 34px; background: linear-gradient(180deg, var(--green), var(--blue)); border-radius: 3px 3px 0 0; position: relative; min-height: 3px; opacity: 0.85; }
+  .ledger-trend .bar span { position: absolute; top: -14px; left: 0; right: 0; text-align: center; font-size: 9px; color: var(--muted); }
+  .ledger-trend .bar b { position: absolute; bottom: -14px; left: 0; right: 0; text-align: center; font-size: 9px; color: var(--muted); font-weight: 500; }
+  .ledger-warn { font-size: 12px; color: var(--red); margin-bottom: 10px; }
+  .ledger-warn:empty { display: none; }
+  .ledger-row { display: grid; grid-template-columns: 92px 64px 1fr; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); font-size: 12px; align-items: baseline; }
+  .ledger-row:last-child { border-bottom: 0; }
+  .ledger-row .lr-period { font-family: ui-monospace, monospace; color: var(--muted); }
+  .ledger-row .lr-rate { font-weight: 700; }
+  .ledger-row .lr-focus { color: var(--text); }
+  .ledger-row .lr-tracks { color: var(--muted); margin-left: 6px; }
+  .ledger-row .lr-retro { color: var(--muted); display: block; margin-top: 2px; font-style: italic; }
+
   /* Print → 干净 PDF: 展开全部, 隐藏交互件, 浅底黑字省墨 */
   @media print {
     :root { --bg:#fff; --bg-elev:#fff; --bg-card:#fff; --text:#111; --muted:#555; --border:#ccc; }
@@ -295,6 +310,15 @@ const DATA = {
   redlines: [
     "Example: a hard constraint that always applies",
   ],
+  // 📒 Review log — each Refresh snapshots the closing period here BEFORE clearing NOW/WEEK.
+  //    Newest first. Brand-new boards start with []. Older than archiveCap → spill to review-log.md.
+  //    entry: { period, range, done, planned, byTrack:{id:"d/t"}, focus, shipped:[], slipped:[], retro }
+  archiveCap: 12,
+  archive: [
+    { period: "W-1", range: "2025-12-22 → 12-28", done: 8, planned: 12, byTrack: { work: "5/7", learn: "2/3", life: "0/2" }, focus: "Example: ship the prototype", shipped: ["Shipped X", "Wrote Y"], slipped: ["Deferred Z"], retro: "Good momentum on work; still skipping exercise." },
+    { period: "W-2", range: "2025-12-15 → 12-21", done: 6, planned: 11, byTrack: { work: "4/6", learn: "2/3", life: "0/2" }, focus: "Example: research + draft", shipped: ["Research done"], slipped: ["Draft slipped"], retro: "Over-planned; cut scope next week." },
+    { period: "W-3", range: "2025-12-08 → 12-14", done: 5, planned: 12, byTrack: { work: "3/7", learn: "2/3", life: "0/2" }, focus: "Example: kickoff week", shipped: ["Set up repo"], slipped: ["4 tasks slipped"], retro: "Too ambitious for a kickoff." },
+  ],
 };
 </script>
 
@@ -380,6 +404,13 @@ const DATA = {
       <ul class="redlines" id="redlines"></ul>
     </div>
   </div>
+
+  <section class="ledger" id="ledger-section" style="display:none;">
+    <h2 style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">📒 Review log</h2>
+    <div class="ledger-trend" id="ledger-trend"></div>
+    <div class="ledger-warn" id="ledger-warn"></div>
+    <div class="ledger-rows" id="ledger-rows"></div>
+  </section>
 </details>
 
 <footer>
@@ -775,6 +806,35 @@ const DATA = {
   // 8. NOT NOW + 红线
   $("not-now").innerHTML = DATA.notNow.map(n => `<span class="chip">${esc(n)}</span>`).join('');
   $("redlines").innerHTML = DATA.redlines.map(r => `<li>${esc(r)}</li>`).join('');
+
+  // 8b. 📒 Review log — render-only from DATA.archive (the skill writes entries on Refresh)
+  (function renderLedger(){
+    const arr = (DATA.archive || []).slice(0, DATA.archiveCap || 12);
+    if (!arr.length) return;
+    $("ledger-section").style.display = '';
+    const pct = e => e.planned ? Math.round(e.done / e.planned * 100) : 0;
+    // trend bar: oldest → newest (archive is newest-first, so reverse for left-to-right time)
+    $("ledger-trend").innerHTML = [...arr].reverse().map(e => {
+      const p = pct(e);
+      return `<div class="bar" style="height:${Math.max(6, p)}%;" title="${esc(e.period)}: ${e.done}/${e.planned}"><span>${p}%</span><b>${esc(e.period)}</b></div>`;
+    }).join('');
+    // rows (newest first)
+    $("ledger-rows").innerHTML = arr.map(e => {
+      const tracks = e.byTrack ? Object.entries(e.byTrack).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ') : '';
+      return `<div class="ledger-row">
+        <span class="lr-period">${esc(e.period)}</span>
+        <span class="lr-rate">${e.done}/${e.planned} · ${pct(e)}%</span>
+        <span><span class="lr-focus">${esc(e.focus || '')}</span><span class="lr-tracks">${tracks}</span>${e.retro ? `<span class="lr-retro">“${esc(e.retro)}”</span>` : ''}</span>
+      </div>`;
+    }).join('');
+    // imbalance: a track that was 0-done across the last (≥2 of) 3 periods it appeared in
+    const last3 = arr.slice(0, 3);
+    const warns = (DATA.tracks || []).filter(t => {
+      const seen = last3.filter(e => e.byTrack && (t.id in e.byTrack));
+      return seen.length >= 2 && seen.every(e => String(e.byTrack[t.id]).split('/')[0] === '0');
+    }).map(t => t.label);
+    $("ledger-warn").textContent = warns.length ? `⚠ Neglected (0 done lately): ${warns.join(' / ')} — give it some time` : '';
+  })();
 
   // 9. Legend 骨架 (counts 由 repaint→refreshLegendCounts 填) + 筛选 (activeFilter) + done 切换
   let legendHtml = `<span class="legend-chip active" data-filter="all">📂 All <span class="lc-count"></span></span>`;

@@ -18,6 +18,8 @@ const DATA = {
   trackingTitle: "...",      // optional
   notNow: [ "...", ... ],
   redlines: [ "...", ... ],
+  archive: [ entry, ... ],   // optional — history ledger (written by Refresh)
+  archiveCap: 12,
 };
 ```
 
@@ -145,6 +147,27 @@ the right column array on **📤 Copy latest DATA**.
   without an `id` orphans that card's overlay entry. When the skill does a Refresh/Edit, prefer baking
   in pending overlay changes first (ask the user to hit 📤 Copy latest DATA, or read the banner state).
 - Theme choice (`lk:theme`) is also persisted in `localStorage`, independent of the overlay.
+
+## `archive` (array, optional) — history ledger
+
+The board's memory. **Refresh mode** prepends one entry per closed period *before* clearing NOW/WEEK
+(see SKILL.md Step 4). Newest first. A brand-new board has `archive: []`. Rendered as a collapsed
+**📒 Review log** with a completion-rate trend bar and a neglected-track warning. `archiveCap` (default
+12) caps how many render; spill older entries to `review-log.md`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `period` | string | e.g. `"W22"` — also the trend-bar label. |
+| `range` | string | e.g. `"2026-05-25 → 05-31"`. |
+| `done` / `planned` | number | Completion = `done/planned` → the trend %. |
+| `byTrack` | object | `{trackId: "done/total"}`, e.g. `{work:"5/7", life:"0/2"}`. Drives the per-period mix + the neglect warning (a track with `0/…` for ≥2 of the last 3 periods is flagged). |
+| `focus` | string | The period's P0, for context. |
+| `shipped` | string[] | Titles that got done (evidence). |
+| `slipped` | string[] | WEEK items not done (honesty — don't drop silently). |
+| `retro` | string | One reflection line captured at Refresh ("what went well / slipped & why / one change"). |
+
+The ledger is **render-only** in the browser — entries are created by the skill's Refresh, never by
+the localStorage overlay. It's plain `DATA`, so it stays single-file, zero-dep, and git-versioned.
 
 ## Edge cases & gotchas
 

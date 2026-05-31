@@ -139,6 +139,18 @@ test('lower sections are collapsed by default', async ({ page }) => {
   expect(open).toBe(false);
 });
 
+test('review log renders trend bars, rows, and a neglected-track warning', async ({ page }) => {
+  await page.locator('#more-fold').evaluate(el => { el.open = true; });   // ledger lives in the collapsed fold
+  await expect(page.locator('#ledger-section')).toBeVisible();
+  await expect(page.locator('#ledger-trend .bar')).toHaveCount(3);
+  await expect(page.locator('#ledger-rows .ledger-row')).toHaveCount(3);
+  // example archive has Life 0-done across all 3 periods → warning fires
+  await expect(page.locator('#ledger-warn')).toContainText('Neglected');
+  // trend ascends (oldest → newest): 42% → 55% → 67%
+  const heights = await page.locator('#ledger-trend .bar').evaluateAll(els => els.map(e => parseInt(e.style.height)));
+  expect(heights[0]).toBeLessThan(heights[2]);
+});
+
 test('checkbox is keyboard-operable (focusable button + Enter)', async ({ page }) => {
   const card = page.locator('#now-list .card').first();
   const key = await card.getAttribute('data-key');
