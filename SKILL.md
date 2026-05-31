@@ -33,7 +33,7 @@ it between/within columns in the browser; changes persist locally and a **sync b
 truth; the overlay is ephemeral. See `references/data-schema.md` → "Browser overlay vs the file".
 
 **Core idea — edit data, never markup.** All board changes are edits to the `DATA = {...}`
-object at the top of the HTML. The render script below it is generic and never needs touching.
+object at the top of the HTML. The shared engine (`lk-engine.js`) it loads is generic and never needs touching.
 This keeps every operation a small, safe, diff-able JS-object edit.
 
 **Design principles** (carried from the proven original):
@@ -65,8 +65,8 @@ and Linux identically). Run these patterns and read the results into the decisio
 2. Exactly one board matches a Glob → use it.
 3. Multiple boards match → **ask which one.** Never guess between two real boards.
 4. No board matches → **Create mode** (Step 2).
-5. Before any Create copy, check "assets already present": if `dashboard.css` / `dashboard-utils.js`
-   already exist in the target dir, **reuse them** (only write the `.html`) — never overwrite a
+5. Before any Create copy, check "assets already present": if `dashboard.css` / `dashboard-utils.js` /
+   `lk-engine.js` already exist in the target dir, **reuse them** (only write the `.html`) — never overwrite a
    working asset.
 
 ### 1b. Classify the intent → mode
@@ -145,6 +145,7 @@ Then confirm the captured intake in one line and proceed. For anything unanswere
    the Step 1 asset-presence probe, **skip any asset that already exists** — never clobber a working one:
    - `assets/dashboard.css` → `dashboard.css`
    - `assets/dashboard-utils.js` → `dashboard-utils.js`
+   - `assets/lk-engine.js` → `lk-engine.js`  **(required — the board renders blank without it)**
    - `assets/kanban-template.html` → `board.html` (or the user's preferred filename)
    - Optional: `assets/kanban-template.md` → `board.md` (terminal mirror; default skip)
 2. **Replace `__TITLE__`** in the HTML (and `.md`) — appears twice: the `<title>` tag and `meta.title`.
@@ -286,7 +287,13 @@ deadline?") but don't edit unprompted.
 
 ## Assets
 
-- `assets/kanban-template.html` — the generic, render-complete board skeleton (copy, then edit `DATA`).
+- `assets/kanban-template.html` — the board markup + the `DATA` block (copy, then edit `DATA`). Loads
+  `dashboard-utils.js` + `lk-engine.js`.
+- `assets/lk-engine.js` — the shared, language-neutral engine: render + localStorage overlay (check /
+  drag / +add) + sync + goals + timeline + ledger + attention + search + shortcuts. **Same file on every
+  board.** Localize via a `window.LK_I18N` object and add bespoke sections via `window.LK_PLUGINS` (both
+  defined in a `<script>` before `lk-engine.js`); goals support track-derived *and* card-linked progress.
+  See README → "One engine, many boards".
 - `assets/dashboard.css` — shared dark-theme base styles.
-- `assets/dashboard-utils.js` — shared helpers (`esc`, `daysSince`, `daysClass`, `showDateWarning`).
+- `assets/dashboard-utils.js` — shared helpers (`esc`, `daysSince`, `daysClass`, `waitingLabel`, `showDateWarning`).
 - `assets/kanban-template.md` — optional terminal-readable markdown mirror.

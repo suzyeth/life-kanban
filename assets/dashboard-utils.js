@@ -40,6 +40,15 @@ function countdownLabel(days) {
   return `${-days}d overdue (start it)`;
 }
 
+// "Waiting Nd" label for launched-and-awaiting items (applications / sent asks).
+// 0 -> "send today", negative -> "date error", positive -> "waiting Nd".
+function waitingLabel(days) {
+  if (days == null) return '';
+  if (days === 0) return 'send today';
+  if (days < 0) return 'date error';
+  return `waiting ${days}d`;
+}
+
 // Auto-shown red banner if DATA.meta.today (or arg) != 真实今天 → 提醒数据 stale
 function showDateWarning(dataToday) {
   if (!dataToday) return;
