@@ -21,6 +21,7 @@ const DATA = {
   redlines: [ "...", ... ],
   archive: [ entry, ... ],   // optional — history ledger (written by Refresh)
   archiveCap: 12,
+  nextFoldAfter: 8,          // optional — NEXT cards beyond this fold behind a "show N more" toggle (default 8)
 };
 ```
 

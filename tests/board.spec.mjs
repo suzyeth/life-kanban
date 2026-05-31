@@ -228,3 +228,50 @@ test('window.LK_PLUGINS run once after first paint with a context', async ({ pag
   await expect(page.locator('#plugin-probe')).toHaveText('ctx-ok');
   await expect(page.locator('#plugin-probe')).toHaveCount(1); // ran exactly once
 });
+
+test('NEXT column folds overflow beyond the threshold + toggle expands', async ({ page }) => {
+  // template NEXT has 2 cards; default fold is 8. Add 7 → 9 total → folded to 8 + a "more" button.
+  await page.locator('.add-row[data-col="next"] .add-toggle').click();
+  const inp = page.locator('.add-row[data-col="next"] .add-form input');
+  for (let i = 0; i < 7; i++) { await inp.fill('extra ' + i); await inp.press('Enter'); }
+  await expect(page.locator('#next-list .next-more')).toBeVisible();
+  await expect(page.locator('#next-list .card')).toHaveCount(8);
+  await page.locator('#next-list .next-more').click();
+  await expect(page.locator('#next-list .card')).toHaveCount(9);
+  await expect(page.locator('#next-list .next-more')).toContainText('less');
+});
+
+test('in-browser edit: ✎ rewrites title, persists to overlay, shows banner', async ({ page }) => {
+  const card = page.locator('#now-list .card').first();
+  const key = await card.getAttribute('data-key');
+  await card.locator('.edit').click();
+  await expect(card.locator('.card-editor')).toBeVisible();
+  await card.locator('.card-editor .ce-title').fill('EDITED HEADLINE');
+  await card.locator('.card-editor .ce-save').click();
+  await expect(page.locator(`#now-list .card[data-key="${key}"] .title`)).toHaveText('EDITED HEADLINE');
+  await expect(page.locator('#sync-banner')).toBeVisible();
+  const edited = await page.evaluate((k) => {
+    const s = Object.keys(localStorage).find(x => x.includes(':overlay'));
+    return JSON.parse(localStorage.getItem(s)).edit[k]?.title;
+  }, key);
+  expect(edited).toBe('EDITED HEADLINE');
+});
+
+test('timeline type filter narrows events and resets', async ({ page }) => {
+  await page.locator('#more-fold').evaluate(el => { el.open = true; });
+  await expect(page.locator('.tl-filter .tl-chip')).not.toHaveCount(0);
+  await page.locator('.tl-filter .tl-chip[data-tl="deadline"]').click();
+  await expect(page.locator('#timeline .tl-event')).toHaveCount(1); // 1 deadline in template DATA
+  await page.locator('.tl-filter .tl-chip[data-tl="all"]').click();
+  await expect(page.locator('#timeline .tl-event')).toHaveCount(3);
+});
+
+test('tap-to-move: tap ⠿ then tap a column moves the card (touch path)', async ({ page }) => {
+  const key = await page.locator('#now-list .card').first().getAttribute('data-key');
+  await page.locator('#now-list .card').first().locator('.grab').click();
+  await expect(page.locator('body')).toHaveClass(/lk-moving/);
+  await page.locator('#week-list').click();
+  await expect(page.locator(`#week-list .card[data-key="${key}"]`)).toHaveCount(1);
+  await expect(page.locator(`#now-list .card[data-key="${key}"]`)).toHaveCount(0);
+  await expect(page.locator('body')).not.toHaveClass(/lk-moving/);
+});
